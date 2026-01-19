@@ -1,0 +1,16 @@
+{
+    "Markowitz Model": {
+        "Possible parameters": {
+            "short selling": [true, false],
+            "calculation window": ["1d", "2d", "3d", "4d", "5d", "1w", "10d", "2w", "1m", "2m", "1y"],
+            "period": ["1m", "2m", "3m", "6m", "1y", "18m", "2y", "3y"]
+        },
+        "Optimized Parameters": {
+            "S&P500": {
+                "short selling": "",
+                "calculation window": "",
+                "period": ""
+            }
+        }
+    }
+}
