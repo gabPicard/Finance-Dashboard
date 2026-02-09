@@ -1,42 +1,47 @@
 import numpy as np
 import pandas as pd
-from cvxopt import matrix, solvers
+from qpsolvers import solve_qp
 
-def optimize_portfolio(cov_matrix, expected_returns, target_returns, short_selling=False):
+def optimize_portfolio(cov_matrix, expected_returns, target_returns, short_selling=False, max_weight=0.8):
     if isinstance(cov_matrix, pd.DataFrame):
         cov_matrix = cov_matrix.values
     if isinstance(expected_returns, pd.Series):
         expected_returns = expected_returns.values
+
+    P = cov_matrix
+    q = -expected_returns
     
-    P = matrix(cov_matrix)
-    q = matrix(np.zeros(expected_returns.shape[0]))
-
-    A_list = [np.ones(expected_returns.shape[0])]
-    b_list = [1.0]
-    A_list.append(expected_returns.flatten())
-    b_list.append(target_returns)
-
-    A = matrix(np.vstack(A_list))
-    b = matrix(b_list)
-
-    G = None
-    h = None
-
+    A = np.ones((1, len(expected_returns)))
+    b = np.array([1.0])
+    
+    G_list = []
+    h_list = []
+    
     if not short_selling:
-        G = matrix(-np.eye(expected_returns.shape[0]))
-        h = matrix(np.zeros(expected_returns.shape[0]))
-
-    solvers.options['show_progress'] = False
-    solution = solvers.qp(P, q, G, h, A, b)
-    weights = np.array(solution['x']).flatten()
+        G_list.append(-np.eye(len(expected_returns)))
+        h_list.append(np.zeros(len(expected_returns)))
+    
+    if max_weight is not None:
+        G_list.append(np.eye(len(expected_returns)))
+        h_list.append(np.full(len(expected_returns), max_weight))
+    
+    if G_list:
+        G = np.vstack(G_list)
+        h = np.concatenate(h_list)
+    else:
+        G = None
+        h = None
+  
+    weights = solve_qp(P, q, G, h, A, b, solver="ecos")
+    
     return weights
 
-def calculate_efficient_frontier(cov_matrix, expected_returns, num_portfolios=100, short_selling=False):
+def calculate_efficient_frontier(cov_matrix, expected_returns, num_portfolios=100, short_selling=False, max_weight=0.8):
     target_returns = np.linspace(expected_returns.min(), expected_returns.max(), num_portfolios)
     weights_list = []
     std_list = []
     for target in target_returns:
-        weights = optimize_portfolio(cov_matrix, expected_returns, target, short_selling)
+        weights = optimize_portfolio(cov_matrix, expected_returns, target, short_selling, max_weight)
         weights_list.append(weights)
         std = portfolio_performance(weights, expected_returns, cov_matrix)['std']
         std_list.append(std)
@@ -67,7 +72,7 @@ def best_sharpe_ratio(efficient_frontier, risk_free_rate):
             "standard deviation": std_list[index]
             }
 
-def rolling_window(prices, risk_free_rate, rebalance_frequency, short_selling=False):
+def rolling_window(prices, risk_free_rate, rebalance_frequency, short_selling=False, max_weight=0.8):
     prices_copy = prices.copy()
     prices_copy['date'] = pd.to_datetime(prices_copy['date'])
     prices_copy = prices_copy.set_index('date').sort_index()
@@ -86,7 +91,7 @@ def rolling_window(prices, risk_free_rate, rebalance_frequency, short_selling=Fa
         cov_tmp = return_tmp.cov()
         exp_returns = return_tmp.mean()
 
-        efficient_frontier = calculate_efficient_frontier(cov_tmp, exp_returns, short_selling=short_selling)
+        efficient_frontier = calculate_efficient_frontier(cov_tmp, exp_returns, short_selling=short_selling, max_weight=max_weight)
 
         best_portfolio = best_sharpe_ratio(efficient_frontier, risk_free_rate)
 
