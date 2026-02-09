@@ -10,17 +10,22 @@ def optimize_portfolio(cov_matrix, expected_returns, target_returns, short_selli
     
     P = matrix(cov_matrix)
     q = matrix(np.zeros(expected_returns.shape[0]))
+
     A_list = [np.ones(expected_returns.shape[0])]
     b_list = [1.0]
     A_list.append(expected_returns.flatten())
     b_list.append(target_returns)
+
     A = matrix(np.vstack(A_list))
     b = matrix(b_list)
+
     G = None
     h = None
+
     if not short_selling:
         G = matrix(-np.eye(expected_returns.shape[0]))
         h = matrix(np.zeros(expected_returns.shape[0]))
+
     solvers.options['show_progress'] = False
     solution = solvers.qp(P, q, G, h, A, b)
     weights = np.array(solution['x']).flatten()
@@ -62,6 +67,36 @@ def best_sharpe_ratio(efficient_frontier, risk_free_rate):
             "standard deviation": std_list[index]
             }
 
+def rolling_window(prices, risk_free_rate, rebalance_frequency, short_selling=False):
+    prices_copy = prices.copy()
+    prices_copy['date'] = pd.to_datetime(prices_copy['date'])
+    prices_copy = prices_copy.set_index('date').sort_index()
+    
+    index_rebalancement = prices_copy.resample(rebalance_frequency).last().index
+    
+    asset_columns = list(prices_copy.columns)
+    metric_columns = ['sharpe_ratio', 'expected_return', 'std']
+    all_columns = asset_columns + metric_columns
+    
+    weights_backtest = pd.DataFrame(index=index_rebalancement, columns=all_columns)
+    
+    for ind in index_rebalancement:
+        price_tmp = prices_copy[:ind].tail(252)
+        return_tmp = price_tmp.pct_change().dropna()
+        cov_tmp = return_tmp.cov()
+        exp_returns = return_tmp.mean()
+
+        efficient_frontier = calculate_efficient_frontier(cov_tmp, exp_returns, short_selling=short_selling)
+
+        best_portfolio = best_sharpe_ratio(efficient_frontier, risk_free_rate)
+
+        weights_backtest.loc[ind, asset_columns] = best_portfolio['weights']
+        
+        weights_backtest.loc[ind, 'sharpe_ratio'] = best_portfolio['sharpe ratio']
+        weights_backtest.loc[ind, 'expected_return'] = best_portfolio['expected return']
+        weights_backtest.loc[ind, 'std'] = best_portfolio['standard deviation']
+    
+    return weights_backtest
 
 def main():
     ...
