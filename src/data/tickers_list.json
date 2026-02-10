@@ -50,5 +50,10 @@
         "WAB", "WAT", "WBA", "WBD", "WDC", "WEC", "WELL", "WFC", "WM", "WMB",
         "WMT", "WRB", "WRK", "WST", "WTW", "WY", "WYNN", "XEL", "XOM", "XYL",
         "YUM", "ZBH", "ZBRA", "ZTS"
-    ]
+    ],
+
+    "CAC40": ["EN.PA", "ENGIE.PA", "VIE.PA", "AC.PA", "BNP.PA", "ATO.PA", "SGO.PA", 
+            "AIR.PA", "GLE.PA", "CA.PA", "ML.PA", "SU.PA", "BN.PA", "DG.PA", "OR.PA", 
+            "ORA.PA", "HO.PA", "AI.PA", "ACA.PA", "SW.PA", "RI.PA", "LR.PA", "MC.PA", 
+            "VIV.PA", "SAN.PA", "CAP.PA", "WLN.PA", "KER.PA"]
 }
