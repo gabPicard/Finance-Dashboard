@@ -3,6 +3,73 @@ import pandas as pd
 import warnings
 from qpsolvers import solve_qp
 
+def validate_and_clean_data(returns, min_observations=100, min_variance=1e-8):
+    """
+    Validate and clean return data before optimization.
+    
+    Parameters:
+    -----------
+    returns : pd.DataFrame
+        Returns data
+    min_observations : int
+        Minimum number of non-NaN observations required per asset
+    min_variance : float
+        Minimum variance required per asset
+        
+    Returns:
+    --------
+    cleaned_returns : pd.DataFrame
+        Cleaned returns with problematic assets removed
+    excluded_assets : list
+        List of excluded asset names with reasons
+    """
+    excluded_assets = []
+    valid_columns = []
+    
+    for col in returns.columns:
+        series = returns[col]
+        
+        # Check for NaN values
+        nan_count = series.isna().sum()
+        if nan_count > len(series) * 0.2:  # More than 20% NaN
+            excluded_assets.append((col, f"Too many NaN values ({nan_count}/{len(series)})"))
+            continue
+            
+        # Check for sufficient observations
+        valid_obs = series.dropna()
+        if len(valid_obs) < min_observations:
+            excluded_assets.append((col, f"Insufficient observations ({len(valid_obs)} < {min_observations})"))
+            continue
+            
+        # Check for zero or near-zero variance
+        variance = valid_obs.var()
+        if variance < min_variance or np.isnan(variance):
+            excluded_assets.append((col, f"Zero or near-zero variance ({variance})"))
+            continue
+            
+        # Check for constant values
+        if valid_obs.nunique() <= 1:
+            excluded_assets.append((col, "Constant values"))
+            continue
+            
+        valid_columns.append(col)
+    
+    if len(valid_columns) == 0:
+        raise ValueError("No valid assets remaining after data validation")
+    
+    cleaned_returns = returns[valid_columns].copy()
+    
+    # Forward fill then backward fill remaining NaN values
+    cleaned_returns = cleaned_returns.ffill().bfill()
+    
+    # Final check: drop any remaining rows with NaN
+    cleaned_returns = cleaned_returns.dropna()
+    
+    if len(excluded_assets) > 0:
+        warnings.warn(f"Excluded {len(excluded_assets)} assets due to data quality issues")
+    
+    return cleaned_returns, excluded_assets
+
 def optimize_portfolio(cov_matrix, expected_returns, target_returns=None, short_selling=False, max_weight=0.8):
     if isinstance(cov_matrix, pd.DataFrame):
         cov_matrix = cov_matrix.values
@@ -67,6 +134,8 @@ def portfolio_performance(weights, expected_returns, cov_matrix):
     return {"return":portfolio_return, "std":portfolio_std}
 
 def sharpe_ratio(portfolio_return, std, risk_free_rate):
+    if std == 0 or np.isnan(std):
+        return 0.0  # Return 0 if std is zero to avoid division by zero
     return (portfolio_return - risk_free_rate) / std
 
 def best_sharpe_ratio(efficient_frontier, risk_free_rate):
@@ -100,9 +169,33 @@ def rolling_window(prices, risk_free_rate, rebalance_frequency, strategy="Best s
     
     for ind in index_rebalancement:
         price_tmp = prices_copy[:ind].tail(252)
-        return_tmp = price_tmp.pct_change().dropna()
-        cov_tmp = return_tmp.cov()
-        exp_returns = return_tmp.mean()
+        return_tmp = price_tmp.pct_change(fill_method=None).dropna()
+        
+        # Validate and clean data before optimization
+        # Adjust min_observations based on available data
+        available_rows = len(return_tmp)
+        min_obs = max(20, int(available_rows * 0.2))  # At least 20% of available data
+        
+        try:
+            cleaned_returns, excluded = validate_and_clean_data(return_tmp, min_observations=min_obs, min_variance=1e-10)
+            
+            if len(cleaned_returns.columns) < 2:
+                warnings.warn(f"Skipping {ind}: Less than 2 valid assets remaining")
+                continue
+            
+            # Annualize returns and covariance (252 trading days per year)
+            cov_tmp = cleaned_returns.cov() * 252
+            exp_returns = cleaned_returns.mean() * 252
+            
+            # Check if covariance matrix is positive definite
+            eigenvalues = np.linalg.eigvals(cov_tmp)
+            if np.any(eigenvalues <= 0):
+                warnings.warn(f"Skipping {ind}: Covariance matrix is not positive definite")
+                continue
+                
+        except Exception as e:
+            warnings.warn(f"Skipping {ind}: Data validation failed - {str(e)} (Available data rows: {len(return_tmp)}, Assets: {len(return_tmp.columns)})")
+            continue
 
         if strategy == "Best sharpe":
             efficient_frontier = calculate_efficient_frontier(cov_tmp, exp_returns, short_selling=short_selling, max_weight=max_weight)
@@ -110,7 +203,11 @@ def rolling_window(prices, risk_free_rate, rebalance_frequency, strategy="Best s
             if len(efficient_frontier['weights']) > 0:
                 best_portfolio = best_sharpe_ratio(efficient_frontier, risk_free_rate)
 
-                weights_backtest.loc[ind, asset_columns] = best_portfolio['weights']
+                # Initialize all weights to 0
+                weights_backtest.loc[ind, asset_columns] = 0.0
+                # Assign weights only to valid assets
+                for i, asset in enumerate(cleaned_returns.columns):
+                    weights_backtest.loc[ind, asset] = best_portfolio['weights'][i]
         
                 weights_backtest.loc[ind, 'sharpe_ratio'] = best_portfolio['sharpe ratio']
                 weights_backtest.loc[ind, 'expected_return'] = best_portfolio['expected return']
@@ -123,7 +220,11 @@ def rolling_window(prices, risk_free_rate, rebalance_frequency, strategy="Best s
                 performance = portfolio_performance(opt_weights, exp_returns, cov_tmp)
                 sharpe = sharpe_ratio(performance['return'], performance['std'], risk_free_rate)
 
-                weights_backtest.loc[ind, asset_columns] = opt_weights
+                # Initialize all weights to 0
+                weights_backtest.loc[ind, asset_columns] = 0.0
+                # Assign weights only to valid assets
+                for i, asset in enumerate(cleaned_returns.columns):
+                    weights_backtest.loc[ind, asset] = opt_weights[i]
             
                 weights_backtest.loc[ind, 'sharpe_ratio'] = sharpe
                 weights_backtest.loc[ind, 'expected_return'] = performance['return']
@@ -132,6 +233,63 @@ def rolling_window(prices, risk_free_rate, rebalance_frequency, strategy="Best s
 
     
     return weights_backtest
+
+def diagnose_data_quality(prices, window_size=252):
+    """
+    Diagnose data quality issues for all assets in the price dataframe.
+    
+    Parameters:
+    -----------
+    prices : pd.DataFrame
+        Price data with date index
+    window_size : int
+        Rolling window size to check
+        
+    Returns:
+    --------
+    report : pd.DataFrame
+        Summary report of data quality issues per asset
+    """
+    prices_copy = prices.copy()
+    if 'date' in prices_copy.columns:
+        prices_copy['date'] = pd.to_datetime(prices_copy['date'])
+        prices_copy = prices_copy.set_index('date').sort_index()
+    
+    returns = prices_copy.pct_change().dropna()
+    
+    report_data = []
+    for col in returns.columns:
+        series = returns[col]
+        
+        nan_count = series.isna().sum()
+        nan_pct = (nan_count / len(series)) * 100
+        valid_obs = len(series.dropna())
+        variance = series.var()
+        mean_return = series.mean()
+        unique_values = series.nunique()
+        
+        issues = []
+        if nan_pct > 20:
+            issues.append(f"High NaN ({nan_pct:.1f}%)")
+        if valid_obs < window_size * 0.5:
+            issues.append(f"Few observations ({valid_obs})")
+        if variance < 1e-8:
+            issues.append(f"Zero variance ({variance:.2e})")
+        if unique_values <= 1:
+            issues.append("Constant values")
+            
+        report_data.append({
+            'Asset': col,
+            'Valid Obs': valid_obs,
+            'NaN %': f"{nan_pct:.2f}",
+            'Variance': f"{variance:.6e}",
+            'Mean Return': f"{mean_return:.6f}",
+            'Unique Values': unique_values,
+            'Issues': ', '.join(issues) if issues else 'OK'
+        })
+    
+    report_df = pd.DataFrame(report_data)
+    return report_df
 
 def main():
     ...
