@@ -3,73 +3,6 @@ import pandas as pd
 import warnings
 from qpsolvers import solve_qp
 
-def validate_and_clean_data(returns, min_observations=100, min_variance=1e-8):
-    """
-    Validate and clean return data before optimization.
-    
-    Parameters:
-    -----------
-    returns : pd.DataFrame
-        Returns data
-    min_observations : int
-        Minimum number of non-NaN observations required per asset
-    min_variance : float
-        Minimum variance required per asset
-        
-    Returns:
-    --------
-    cleaned_returns : pd.DataFrame
-        Cleaned returns with problematic assets removed
-    excluded_assets : list
-        List of excluded asset names with reasons
-    """
-    excluded_assets = []
-    valid_columns = []
-    
-    for col in returns.columns:
-        series = returns[col]
-        
-        # Check for NaN values
-        nan_count = series.isna().sum()
-        if nan_count > len(series) * 0.2:  # More than 20% NaN
-            excluded_assets.append((col, f"Too many NaN values ({nan_count}/{len(series)})"))
-            continue
-            
-        # Check for sufficient observations
-        valid_obs = series.dropna()
-        if len(valid_obs) < min_observations:
-            excluded_assets.append((col, f"Insufficient observations ({len(valid_obs)} < {min_observations})"))
-            continue
-            
-        # Check for zero or near-zero variance
-        variance = valid_obs.var()
-        if variance < min_variance or np.isnan(variance):
-            excluded_assets.append((col, f"Zero or near-zero variance ({variance})"))
-            continue
-            
-        # Check for constant values
-        if valid_obs.nunique() <= 1:
-            excluded_assets.append((col, "Constant values"))
-            continue
-            
-        valid_columns.append(col)
-    
-    if len(valid_columns) == 0:
-        raise ValueError("No valid assets remaining after data validation")
-    
-    cleaned_returns = returns[valid_columns].copy()
-    
-    # Forward fill then backward fill remaining NaN values
-    cleaned_returns = cleaned_returns.ffill().bfill()
-    
-    # Final check: drop any remaining rows with NaN
-    cleaned_returns = cleaned_returns.dropna()
-    
-    if len(excluded_assets) > 0:
-        warnings.warn(f"Excluded {len(excluded_assets)} assets due to data quality issues")
-    
-    return cleaned_returns, excluded_assets
-
 def optimize_portfolio(cov_matrix, expected_returns, target_returns=None, short_selling=False, max_weight=0.8):
     if isinstance(cov_matrix, pd.DataFrame):
         cov_matrix = cov_matrix.values
@@ -177,15 +110,10 @@ def rolling_window(prices, risk_free_rate, rebalance_frequency, strategy="Best s
         min_obs = max(20, int(available_rows * 0.2))  # At least 20% of available data
         
         try:
-            cleaned_returns, excluded = validate_and_clean_data(return_tmp, min_observations=min_obs, min_variance=1e-10)
-            
-            if len(cleaned_returns.columns) < 2:
-                warnings.warn(f"Skipping {ind}: Less than 2 valid assets remaining")
-                continue
             
             # Annualize returns and covariance (252 trading days per year)
-            cov_tmp = cleaned_returns.cov() * 252
-            exp_returns = cleaned_returns.mean() * 252
+            cov_tmp = return_tmp.cov() * 252
+            exp_returns = return_tmp.mean() * 252
             
             # Check if covariance matrix is positive definite
             eigenvalues = np.linalg.eigvals(cov_tmp)
@@ -206,7 +134,7 @@ def rolling_window(prices, risk_free_rate, rebalance_frequency, strategy="Best s
                 # Initialize all weights to 0
                 weights_backtest.loc[ind, asset_columns] = 0.0
                 # Assign weights only to valid assets
-                for i, asset in enumerate(cleaned_returns.columns):
+                for i, asset in enumerate(return_tmp.columns):
                     weights_backtest.loc[ind, asset] = best_portfolio['weights'][i]
         
                 weights_backtest.loc[ind, 'sharpe_ratio'] = best_portfolio['sharpe ratio']
@@ -223,7 +151,7 @@ def rolling_window(prices, risk_free_rate, rebalance_frequency, strategy="Best s
                 # Initialize all weights to 0
                 weights_backtest.loc[ind, asset_columns] = 0.0
                 # Assign weights only to valid assets
-                for i, asset in enumerate(cleaned_returns.columns):
+                for i, asset in enumerate(return_tmp.columns):
                     weights_backtest.loc[ind, asset] = opt_weights[i]
             
                 weights_backtest.loc[ind, 'sharpe_ratio'] = sharpe
