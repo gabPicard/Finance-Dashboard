@@ -1,10 +1,9 @@
 import numpy as np
 import warnings
 
-def validate_and_clean_data(returns, min_observations=100, min_variance=1e-6):
+def validate_and_clean_data(returns, min_observations=100, min_variance=1e-6, max_nan_percentage=0.2):
     excluded_assets = []
     valid_columns = []
-    max_nan_percentage = 0.2
     
     for col in returns.columns:
         series = returns[col]
