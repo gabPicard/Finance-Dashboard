@@ -1,5 +1,7 @@
 {
-    "S&P500": [
+    "S&P500": { 
+        "Risk free rate": ["^IRX", "^FVX", "^TNX", "^TYX"],
+        "Tickers list": [
         "AAPL", "ABBV", "ABT", "ACGL", "ACN", "ADBE", "ADI", "ADM", "ADP", "ADSK",
         "AEE", "AEP", "AES", "AFL", "AIG", "AIZ", "AJG", "AKAM", "ALB", "ALGN",
         "ALL", "ALLE", "AMAT", "AMCR", "AMD", "AME", "AMGN", "AMP", "AMT", "AMZN",
@@ -50,10 +52,15 @@
         "WAB", "WAT", "WBA", "WBD", "WDC", "WEC", "WELL", "WFC", "WM", "WMB",
         "WMT", "WRB", "WRK", "WST", "WTW", "WY", "WYNN", "XEL", "XOM", "XYL",
         "YUM", "ZBH", "ZBRA", "ZTS"
-    ],
+    ]
 
-    "CAC40": ["EN.PA", "ENGI.PA", "VIE.PA", "AC.PA", "BNP.PA", "ATO.PA", "SGO.PA", 
+    },
+
+    "CAC40": {
+        "Risk free rate": ["^FCHI"],
+        "Tickers list": ["EN.PA", "ENGI.PA", "VIE.PA", "AC.PA", "BNP.PA", "ATO.PA", "SGO.PA", 
             "AIR.PA", "GLE.PA", "CA.PA", "ML.PA", "SU.PA", "BN.PA", "DG.PA", "OR.PA", 
             "ORA.PA", "HO.PA", "AI.PA", "ACA.PA", "SW.PA", "RI.PA", "LR.PA", "MC.PA", 
             "VIV.PA", "SAN.PA", "CAP.PA", "WLN.PA", "KER.PA"]
+    }
 }
