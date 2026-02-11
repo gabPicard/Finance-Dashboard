@@ -44,14 +44,20 @@ def fetch_risk_free_rate(ticker: str = "^FVX") -> float:
     - ^TNX : Bons du Trésor à 10 ans (défaut)
     - ^TYX : Bons du Trésor à 30 ans
     
-    Returns annual rate as percentage (e.g., 4.5 for 4.5%)
+    Returns annual rate as decimal (e.g., 0.045 for 4.5%)
     """
     try:
         treasury = yf.Ticker(ticker)
         hist = treasury.history(period="5d")
         if not hist.empty:
-            # Le taux est déjà en pourcentage, le convertir en décimal
-            rate = hist['Close'].iloc[-1] / 100  # Convert percentage to decimal
+            rate = hist['Close'].iloc[-1]
+            # If rate is already in percentage format (0-100), convert to decimal
+            if rate > 1:
+                rate = rate / 100
+            # Sanity check: reasonable risk-free rates are between 0% and 20%
+            if rate < 0 or rate > 0.20:
+                print(f"Taux suspect ({rate*100:.2f}%), utilisation du taux par défaut de 4.0%")
+                return 0.04
             return rate
         else:
             print(f"Aucune donnée disponible pour {ticker}, utilisation du taux par défaut de 4.0%")
