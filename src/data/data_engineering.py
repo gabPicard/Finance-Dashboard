@@ -1,7 +1,22 @@
 import numpy as np
 import warnings
 
-def validate_and_clean_data(returns, min_observations=100, min_variance=1e-6, max_nan_percentage=0.2):
+def validate_and_clean_data(returns: np.ndarray, 
+                            min_observations: int =100, 
+                            min_variance: float =1e-6, 
+                            max_nan_percentage: float =0.2) -> np.ndarray | list[str]:
+    """
+    Validate and clean returns data by removing assets with excessive NaN values, near-zero variance.
+    
+    Args: 
+        returns: Dataframe of asset returns with assets as columns
+        min_observations: Minimum required non-NaN observations per asset
+        min_variance: Minimum variance threshold for asset returns
+        max_nan_percentage: Maximum allowed propoertio of NaN values
+    
+    Returns:
+        tuple: cleaned_returns DataFrame, list of (asset, reason)
+    """
     excluded_assets = []
     valid_columns = []
     
