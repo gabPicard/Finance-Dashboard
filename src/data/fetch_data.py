@@ -1,15 +1,20 @@
 import yfinance as yf
 import pandas as pd
-from typing import List, Optional, Union
 
 
 def fetch_stock_data(
-    tickers: Union[str, List[str]],
-    start_date: Optional[str] = None,
-    end_date: Optional[str] = None,
+    tickers: str | list[str],
+    start_date: str = None,
+    end_date: str = None,
     period: str = "1y",
     interval: str = "1d"
 ) -> pd.DataFrame:
+    """
+    Fetch historical data about a stock or a list of stocks.
+
+    :return: ['Date', 'Ticker', 'Open', 'High', 'Low', 'Close', 'Volume']
+    :rtype: dict
+    """
     if isinstance(tickers, str):
         tickers = [tickers]
 
@@ -21,7 +26,10 @@ def fetch_stock_data(
     return data
 
 
-def fetch_stock_info(tickers: Union[str, List[str]]) -> dict:
+def fetch_stock_info(tickers: str | list[str]) -> dict:
+    """
+    Fetch numerous informations about a stock or a list of stocks
+    """
     if isinstance(tickers, str):
         tickers = [tickers]
     print(f"Fetching info for tickers: {tickers}")
@@ -39,30 +47,23 @@ def fetch_stock_info(tickers: Union[str, List[str]]) -> dict:
 
 def fetch_risk_free_rate(ticker: str = "^FVX") -> float:
     """
-    - ^IRX : Bons du Trésor à 13 semaines
-    - ^FVX : Bons du Trésor à 5 ans
-    - ^TNX : Bons du Trésor à 10 ans (défaut)
-    - ^TYX : Bons du Trésor à 30 ans
-    
-    Returns annual rate as decimal (e.g., 0.045 for 4.5%)
+    Fetch the risk free rate, returns 4% by default.
     """
     try:
         treasury = yf.Ticker(ticker)
         hist = treasury.history(period="5d")
         if not hist.empty:
             rate = hist['Close'].iloc[-1]
-            # If rate is already in percentage format (0-100), convert to decimal
             if rate > 1:
                 rate = rate / 100
-            # Sanity check: reasonable risk-free rates are between 0% and 20%
             if rate < 0 or rate > 0.20:
                 print(f"Taux suspect ({rate*100:.2f}%), utilisation du taux par défaut de 4.0%")
                 return 0.04
             return rate
         else:
             print(f"Aucune donnée disponible pour {ticker}, utilisation du taux par défaut de 4.0%")
-            return 0.04  # 4% as decimal
+            return 0.04
     except Exception as e:
         print(f"Erreur lors de la récupération du taux sans risque: {e}")
         print("Utilisation du taux par défaut de 4.0%")
-        return 0.04  # 4% as decimal
+        return 0.04
