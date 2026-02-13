@@ -1,5 +1,3 @@
-import numpy as np
-import pandas as pd
 import json
 import os
 from .data_engineering import validate_and_clean_data
@@ -11,6 +9,14 @@ def get_stock_prices(market,
                      period="1y", 
                      interval="1d",
                      columns=['Close']):
+    """
+    Get clean and validate historical stock prices and the risk free rate.
+    
+    :param market: Must be the name of a known market in the json file.
+    :type market: str
+
+    :returns clean_prices | risk free rate:
+    """
     
     tickers_list, risk_free_rate_ticker = get_tickers_list(market)
 
@@ -28,7 +34,15 @@ def get_stock_prices(market,
     return clean_prices, risk_free_rate
 
 
-def get_tickers_list(market):
+def get_tickers_list(market: list[str]):
+    """
+    Get the list of every asset's ticker in the market and the risk free rate ticker
+    
+    :param market: Must be the name of a known market in the json file.
+    :type market: list[str]
+
+    :returns tuple: tickers list | risk free rate
+    """
     json_path = os.path.join(os.path.dirname(__file__), 'tickers_list.json')
     with open(json_path) as f:
         data = json.load(f)
