@@ -87,7 +87,7 @@ def best_sharpe_ratio(efficient_frontier, risk_free_rate):
             "standard deviation": std_list[index]
             }
 
-def rolling_window(prices, risk_free_rate, rebalance_frequency, strategy="Best sharpe", short_selling=False, max_weight=0.8):
+def rolling_window(prices, risk_free_rate, rebalance_frequency, strategy="Best sharpe", short_selling=False, max_weight=0.15):
     prices_copy = prices.copy()
     prices_copy['date'] = pd.to_datetime(prices_copy['date'])
     prices_copy = prices_copy.set_index('date').sort_index()
@@ -97,14 +97,14 @@ def rolling_window(prices, risk_free_rate, rebalance_frequency, strategy="Best s
     asset_columns = list(prices_copy.columns)
     metric_columns = ['sharpe_ratio', 'expected_return', 'std']
     all_columns = asset_columns + metric_columns
+
+    max_weight = max(0.15, 1/len(asset_columns))
     
     weights_backtest = pd.DataFrame(index=index_rebalancement, columns=all_columns)
     
     for ind in index_rebalancement:
         price_tmp = prices_copy[:ind].tail(252)
         return_tmp = price_tmp.pct_change(fill_method=None).dropna()
-        
-        available_rows = len(return_tmp)
         
         try:
             
@@ -138,7 +138,7 @@ def rolling_window(prices, risk_free_rate, rebalance_frequency, strategy="Best s
                 warnings.warn(f"No efficient frontier found")
         
         elif strategy == "Lowest std":
-            opt_weights = optimize_portfolio(cov_tmp, exp_returns, None, short_selling, max_weight)
+            opt_weights = optimize_portfolio(cov_tmp, exp_returns, target_return=None, short_selling=short_selling, max_weight=max_weight)
             
             if opt_weights is not None:
                 performance = portfolio_performance(opt_weights, exp_returns, cov_tmp)
@@ -153,6 +153,9 @@ def rolling_window(prices, risk_free_rate, rebalance_frequency, strategy="Best s
                 weights_backtest.loc[ind, 'std'] = performance['std']
 
     return weights_backtest
+
+def l2_optimization(prices, risk_free_rate, rebalance_frequency, strategy='Lowest std', max_weight=0.8):
+    ...
 
 def main():
     ...
