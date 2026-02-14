@@ -3,11 +3,13 @@ import pandas as pd
 import warnings
 from qpsolvers import solve_qp
 
-def optimize_portfolio(cov_matrix, expected_returns, target_returns=None, short_selling=False, max_weight=0.65):
+def optimize_portfolio(cov_matrix, expected_returns, target_returns=None, short_selling=False, max_weight=0.15):
     if isinstance(cov_matrix, pd.DataFrame):
         cov_matrix = cov_matrix.values
     if isinstance(expected_returns, pd.Series):
         expected_returns = expected_returns.values
+
+    max_weight = max(0.15, len(expected_returns))
 
     P = cov_matrix
     q = np.zeros(len(expected_returns))
@@ -46,7 +48,7 @@ def optimize_portfolio(cov_matrix, expected_returns, target_returns=None, short_
     
     return weights
 
-def calculate_efficient_frontier(cov_matrix, expected_returns, num_portfolios=100, short_selling=False, max_weight=0.8):
+def calculate_efficient_frontier(cov_matrix, expected_returns, num_portfolios=100, short_selling=False, max_weight=0.15):
     target_returns = np.linspace(expected_returns.min(), expected_returns.max(), num_portfolios)
     weights_list = []
     std_list = []
@@ -154,7 +156,7 @@ def rolling_window(prices, risk_free_rate, rebalance_frequency, strategy="Best s
 
     return weights_backtest
 
-def l2_optimization(prices, risk_free_rate, rebalance_frequency, strategy='Lowest std', max_weight=0.8):
+def l2_optimization(prices, risk_free_rate, rebalance_frequency, strategy='Lowest std', max_weight=0.15):
     ...
 
 def main():
