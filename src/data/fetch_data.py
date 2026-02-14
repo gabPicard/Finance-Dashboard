@@ -57,11 +57,9 @@ def fetch_risk_free_rate(ticker: str = "^FVX") -> float:
             if rate > 1:
                 rate = rate / 100
             if rate < 0 or rate > 0.20:
-                print(f"Taux suspect ({rate*100:.2f}%), utilisation du taux par défaut de 4.0%")
                 return 0.04
             return rate
         else:
-            print(f"Aucune donnée disponible pour {ticker}, utilisation du taux par défaut de 4.0%")
             return 0.04
     except Exception as e:
         print(f"Erreur lors de la récupération du taux sans risque: {e}")
