@@ -3,7 +3,7 @@ import pandas as pd
 import warnings
 from qpsolvers import solve_qp
 
-def optimize_portfolio(cov_matrix, expected_returns, target_returns=None, short_selling=False, max_weight=0.15):
+def optimize_portfolio(cov_matrix, expected_returns, target_returns=None, max_weight=0.15):
     if isinstance(cov_matrix, pd.DataFrame):
         cov_matrix = cov_matrix.values
     if isinstance(expected_returns, pd.Series):
@@ -27,9 +27,8 @@ def optimize_portfolio(cov_matrix, expected_returns, target_returns=None, short_
     G_list = []
     h_list = []
     
-    if not short_selling:
-        G_list.append(-np.eye(len(expected_returns)))
-        h_list.append(np.zeros(len(expected_returns)))
+    G_list.append(-np.eye(len(expected_returns)))
+    h_list.append(np.zeros(len(expected_returns)))
     
     if max_weight is not None:
         G_list.append(np.eye(len(expected_returns)))
@@ -48,13 +47,13 @@ def optimize_portfolio(cov_matrix, expected_returns, target_returns=None, short_
     
     return weights
 
-def calculate_efficient_frontier(cov_matrix, expected_returns, num_portfolios=100, short_selling=False, max_weight=0.15):
+def calculate_efficient_frontier(cov_matrix, expected_returns, num_portfolios=100, max_weight=0.15):
     target_returns = np.linspace(expected_returns.min(), expected_returns.max(), num_portfolios)
     weights_list = []
     std_list = []
     valid_returns = []
     for target in target_returns:
-        weights = optimize_portfolio(cov_matrix, expected_returns, target, short_selling, max_weight)
+        weights = optimize_portfolio(cov_matrix, expected_returns, target, max_weight)
         if weights is not None:
             weights_list.append(weights)
             std = portfolio_performance(weights, expected_returns, cov_matrix)['std']
@@ -70,7 +69,7 @@ def portfolio_performance(weights, expected_returns, cov_matrix):
 
 def sharpe_ratio(portfolio_return, std, risk_free_rate):
     if std == 0 or np.isnan(std):
-        return 0.0  # Return 0 if std is zero to avoid division by zero
+        return 0.0
     return (portfolio_return - risk_free_rate) / std
 
 def best_sharpe_ratio(efficient_frontier, risk_free_rate):
@@ -89,7 +88,7 @@ def best_sharpe_ratio(efficient_frontier, risk_free_rate):
             "standard deviation": std_list[index]
             }
 
-def rolling_window(prices, risk_free_rate, rebalance_frequency, strategy="Best sharpe", short_selling=False, max_weight=0.15):
+def rolling_window(prices, risk_free_rate, rebalance_frequency, strategy="Best sharpe", max_weight=0.15):
     prices_copy = prices.copy()
     prices_copy['date'] = pd.to_datetime(prices_copy['date'])
     prices_copy = prices_copy.set_index('date').sort_index()
@@ -123,7 +122,7 @@ def rolling_window(prices, risk_free_rate, rebalance_frequency, strategy="Best s
             continue
 
         if strategy == "Best sharpe":
-            efficient_frontier = calculate_efficient_frontier(cov_tmp, exp_returns, short_selling=short_selling, max_weight=max_weight)
+            efficient_frontier = calculate_efficient_frontier(cov_tmp, exp_returns, max_weight=max_weight)
             
             if len(efficient_frontier['weights']) > 0:
                 best_portfolio = best_sharpe_ratio(efficient_frontier, risk_free_rate)
@@ -140,7 +139,7 @@ def rolling_window(prices, risk_free_rate, rebalance_frequency, strategy="Best s
                 warnings.warn(f"No efficient frontier found")
         
         elif strategy == "Lowest std":
-            opt_weights = optimize_portfolio(cov_tmp, exp_returns, target_return=None, short_selling=short_selling, max_weight=max_weight)
+            opt_weights = optimize_portfolio(cov_tmp, exp_returns, target_return=None, max_weight=max_weight)
             
             if opt_weights is not None:
                 performance = portfolio_performance(opt_weights, exp_returns, cov_tmp)
