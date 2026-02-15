@@ -155,8 +155,90 @@ def rolling_window(prices, risk_free_rate, rebalance_frequency, strategy="Best s
 
     return weights_backtest
 
-def l2_optimization(prices, risk_free_rate, rebalance_frequency, strategy='Lowest std', max_weight=0.15):
-    ...
+def l2_optimization(prices, risk_free_rate, rebalance_frequency, rho, gamma, max_weight=0.15):
+    prices_copy = prices.copy()
+    prices_copy['date'] = pd.to_datetime(prices_copy['date'])
+    prices_copy = prices_copy.set_index('date').sort_index()
+    
+    index_rebalancement = prices_copy.resample(rebalance_frequency).last().index
+    
+    asset_columns = list(prices_copy.columns)
+    metric_columns = ['sharpe_ratio', 'expected_return', 'std']
+    all_columns = asset_columns + metric_columns
+
+    max_weight = max(0.15, 1/len(asset_columns))
+    
+    weights_backtest = pd.DataFrame(index=index_rebalancement, columns=all_columns)
+    weights_old = np.array([1/len(asset_columns) for _ in range(len(asset_columns))])
+    
+    for ind in index_rebalancement:
+        price_tmp = prices_copy[:ind].tail(252)
+        return_tmp = price_tmp.pct_change(fill_method=None).dropna()
+        
+        try:
+            
+            cov_matrix = return_tmp.cov() * 252
+            expected_returns = return_tmp.mean() * 252
+            
+            eigenvalues = np.linalg.eigvals(cov_matrix)
+            if np.any(eigenvalues <= 0):
+                warnings.warn(f"Skipping {ind}: Covariance matrix is not positive definite")
+                continue
+                
+        except Exception as e:
+            warnings.warn(f"Skipping {ind}: Data validation failed - {str(e)} (Available data rows: {len(return_tmp)}, Assets: {len(return_tmp.columns)})")
+            continue
+
+        P = cov_matrix
+        q = np.zeros(len(expected_returns))
+
+        A_list = [np.ones((1, len(expected_returns)))]
+        b_list = [1.0]
+
+        A = np.vstack(A_list)
+        b = np.array(b_list)
+
+        G_list = []
+        h_list = []
+
+        G_list.append(-np.eye(len(expected_returns)))
+        h_list.append(np.zeros(len(expected_returns)))
+
+        if max_weight is not None:
+            G_list.append(np.eye(len(expected_returns)))
+            h_list.append(np.full(len(expected_returns), max_weight))
+
+        if G_list:
+            G = np.vstack(G_list)
+            h = np.concatenate(h_list)
+        else:
+            G = None
+            h = None
+
+        In = np.eye((len(expected_returns)))
+
+        P += 2 * rho * In
+        q = -gamma * expected_returns + 2 * rho * weights_old.T
+
+    
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', category=UserWarning)
+            opt_weights = solve_qp(P, q, G, h, A, b, solver="ecos")
+        
+        performance = portfolio_performance(opt_weights, expected_returns, cov_matrix)
+        sharpe = sharpe_ratio(performance['return'], performance['std'], risk_free_rate)
+        weights_backtest.loc[ind, asset_columns] = 0.0
+        for i, asset in enumerate(return_tmp.columns):
+            weights_backtest.loc[ind, asset] = opt_weights[i]
+    
+        weights_backtest.loc[ind, 'sharpe_ratio'] = sharpe
+        weights_backtest.loc[ind, 'expected_return'] = performance['return']
+        weights_backtest.loc[ind, 'std'] = performance['std']
+
+        weights_old = opt_weights
+    
+
+    return weights_backtest
 
 def main():
     ...
