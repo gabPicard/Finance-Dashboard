@@ -237,8 +237,39 @@ def l2_optimization(prices, risk_free_rate, rebalance_frequency, rho, gamma, max
 
         weights_old = opt_weights
     
-
     return weights_backtest
+
+def find_best_params(prices, risk_free_rate, deciding_value="Lowest std"):
+    rebalance_frequency = 'QE'
+    max_weight = 0.15
+
+    gammas = np.linspace(0.01, 0.05, 10)
+    rhos = np.linspace(0.01, 1, 100)
+
+    metrics = ['Return', 'Sharpe Ratio', 'Standard Deviation']
+    params = pd.DataFrame(
+        index=pd.Index(gammas, name="gamma"),
+        columns=pd.MultiIndex.from_product([rhos, metrics], names=["rho", "metric"]),
+    )
+
+    for ind_gammas in gammas:
+        for ind_rhos in rhos:
+            l2_results = l2_optimization(prices, risk_free_rate, rebalance_frequency, ind_rhos, ind_gammas, max_weight=max_weight)
+
+            if l2_results is None or l2_results.empty:
+                continue
+
+            last_metrics = l2_results[['expected_return', 'sharpe_ratio', 'std']].dropna()
+            if last_metrics.empty:
+                continue
+
+            last_metrics = last_metrics.iloc[-1]
+
+            params.loc[ind_gammas, (ind_rhos, 'Return')] = last_metrics['expected_return']
+            params.loc[ind_gammas, (ind_rhos, 'Sharpe Ratio')] = last_metrics['sharpe_ratio']
+            params.loc[ind_gammas, (ind_rhos, 'Standard Deviation')] = last_metrics['std']
+    
+    return params
 
 def main():
     ...
