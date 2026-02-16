@@ -102,6 +102,7 @@ def rolling_window(prices, risk_free_rate, rebalance_frequency, strategy="Best s
     max_weight = max(0.15, 1/len(asset_columns))
     
     weights_backtest = pd.DataFrame(index=index_rebalancement, columns=all_columns)
+    last_valid_weights = None  # Track last successful optimization
     
     for ind in index_rebalancement:
         price_tmp = prices_copy[:ind].tail(252)
@@ -114,11 +115,21 @@ def rolling_window(prices, risk_free_rate, rebalance_frequency, strategy="Best s
             
             eigenvalues = np.linalg.eigvals(cov_tmp)
             if np.any(eigenvalues <= 0):
-                warnings.warn(f"Skipping {ind}: Covariance matrix is not positive definite")
+                warnings.warn(f"Skipping {ind}: Covariance matrix is not positive definite - using previous weights")
+                if last_valid_weights is not None:
+                    weights_backtest.loc[ind, asset_columns] = last_valid_weights['weights']
+                    weights_backtest.loc[ind, 'sharpe_ratio'] = last_valid_weights['sharpe_ratio']
+                    weights_backtest.loc[ind, 'expected_return'] = last_valid_weights['expected_return']
+                    weights_backtest.loc[ind, 'std'] = last_valid_weights['std']
                 continue
                 
         except Exception as e:
-            warnings.warn(f"Skipping {ind}: Data validation failed - {str(e)} (Available data rows: {len(return_tmp)}, Assets: {len(return_tmp.columns)})")
+            warnings.warn(f"Skipping {ind}: Data validation failed - {str(e)} (Available data rows: {len(return_tmp)}, Assets: {len(return_tmp.columns)}) - using previous weights")
+            if last_valid_weights is not None:
+                weights_backtest.loc[ind, asset_columns] = last_valid_weights['weights']
+                weights_backtest.loc[ind, 'sharpe_ratio'] = last_valid_weights['sharpe_ratio']
+                weights_backtest.loc[ind, 'expected_return'] = last_valid_weights['expected_return']
+                weights_backtest.loc[ind, 'std'] = last_valid_weights['std']
             continue
 
         if strategy == "Best sharpe":
@@ -134,9 +145,22 @@ def rolling_window(prices, risk_free_rate, rebalance_frequency, strategy="Best s
                 weights_backtest.loc[ind, 'sharpe_ratio'] = best_portfolio['sharpe ratio']
                 weights_backtest.loc[ind, 'expected_return'] = best_portfolio['expected return']
                 weights_backtest.loc[ind, 'std'] = best_portfolio['standard deviation']
+                
+                # Store as last valid weights
+                last_valid_weights = {
+                    'weights': best_portfolio['weights'],
+                    'sharpe_ratio': best_portfolio['sharpe ratio'],
+                    'expected_return': best_portfolio['expected return'],
+                    'std': best_portfolio['standard deviation']
+                }
             
             else:
-                warnings.warn(f"No efficient frontier found")
+                warnings.warn(f"No efficient frontier found - using previous weights")
+                if last_valid_weights is not None:
+                    weights_backtest.loc[ind, asset_columns] = last_valid_weights['weights']
+                    weights_backtest.loc[ind, 'sharpe_ratio'] = last_valid_weights['sharpe_ratio']
+                    weights_backtest.loc[ind, 'expected_return'] = last_valid_weights['expected_return']
+                    weights_backtest.loc[ind, 'std'] = last_valid_weights['std']
         
         elif strategy == "Lowest std":
             opt_weights = optimize_portfolio(cov_tmp, exp_returns, target_return=None, max_weight=max_weight)
@@ -152,6 +176,14 @@ def rolling_window(prices, risk_free_rate, rebalance_frequency, strategy="Best s
                 weights_backtest.loc[ind, 'sharpe_ratio'] = sharpe
                 weights_backtest.loc[ind, 'expected_return'] = performance['return']
                 weights_backtest.loc[ind, 'std'] = performance['std']
+                
+                # Store as last valid weights
+                last_valid_weights = {
+                    'weights': opt_weights,
+                    'sharpe_ratio': sharpe,
+                    'expected_return': performance['return'],
+                    'std': performance['std']
+                }
 
     return weights_backtest
 
@@ -182,11 +214,19 @@ def l2_optimization(prices, risk_free_rate, rebalance_frequency, rho, gamma, max
             
             eigenvalues = np.linalg.eigvals(cov_matrix)
             if np.any(eigenvalues <= 0):
-                warnings.warn(f"Skipping {ind}: Covariance matrix is not positive definite")
+                warnings.warn(f"Skipping {ind}: Covariance matrix is not positive definite - using previous weights")
+                weights_backtest.loc[ind, asset_columns] = weights_old
+                weights_backtest.loc[ind, 'sharpe_ratio'] = np.nan
+                weights_backtest.loc[ind, 'expected_return'] = np.nan
+                weights_backtest.loc[ind, 'std'] = np.nan
                 continue
                 
         except Exception as e:
-            warnings.warn(f"Skipping {ind}: Data validation failed - {str(e)} (Available data rows: {len(return_tmp)}, Assets: {len(return_tmp.columns)})")
+            warnings.warn(f"Skipping {ind}: Data validation failed - {str(e)} (Available data rows: {len(return_tmp)}, Assets: {len(return_tmp.columns)}) - using previous weights")
+            weights_backtest.loc[ind, asset_columns] = weights_old
+            weights_backtest.loc[ind, 'sharpe_ratio'] = np.nan
+            weights_backtest.loc[ind, 'expected_return'] = np.nan
+            weights_backtest.loc[ind, 'std'] = np.nan
             continue
 
         P = cov_matrix
