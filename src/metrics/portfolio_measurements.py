@@ -31,19 +31,28 @@ def realized_returns(weights_backtest, prices, initial_value=100):
     if len(weights_clean) == 0:
         raise ValueError("No valid rebalancing periods found in weights_backtest")
     
-    daily_returns = prices_copy.pct_change(fill_method=None)
-    
-    portfolio_values = pd.Series(index=daily_returns.index, dtype=float)
-    portfolio_returns = pd.Series(index=daily_returns.index, dtype=float)
+    portfolio_values = pd.Series(index=prices_copy.index, dtype=float)
+    portfolio_returns = pd.Series(index=prices_copy.index, dtype=float)
     
     rebalance_dates = weights_clean.index
     current_value = initial_value
     
     for i in range(len(rebalance_dates)):
-        start_date = rebalance_dates[i]
-        end_date = rebalance_dates[i + 1] if i < len(rebalance_dates) - 1 else daily_returns.index[-1]
+        target_date = rebalance_dates[i]
+        next_target_date = rebalance_dates[i + 1] if i < len(rebalance_dates) - 1 else prices_copy.index[-1]
         
-        weights = weights_clean.loc[start_date, asset_columns].values.astype(float)
+        available_dates = prices_copy.index[prices_copy.index >= target_date]
+        if len(available_dates) == 0:
+            continue
+        start_date = available_dates[0]
+        
+        available_end_dates = prices_copy.index[prices_copy.index >= next_target_date]
+        if len(available_end_dates) == 0:
+            end_date = prices_copy.index[-1]
+        else:
+            end_date = available_end_dates[0]
+        
+        weights = weights_clean.loc[target_date, asset_columns].values.astype(float)
         
         valid_mask = ~np.isnan(weights)
         weights = weights[valid_mask]
@@ -54,21 +63,34 @@ def realized_returns(weights_backtest, prices, initial_value=100):
         else:
             continue
         
-        period_returns = daily_returns.loc[start_date:end_date, valid_assets]
-        
-        for date in period_returns.index:
-            if date == start_date:
-                portfolio_values[date] = current_value
-                portfolio_returns[date] = 0.0
+        rebalance_prices = prices_copy.loc[start_date, valid_assets]
+        shares = {}
+        for j, asset in enumerate(valid_assets):
+            price = rebalance_prices[asset]
+            if not np.isnan(price) and price > 0:
+                shares[asset] = (current_value * weights[j]) / price
             else:
-                daily_ret = period_returns.loc[date].values
-                if np.any(np.isnan(daily_ret)):
-                    daily_ret = np.nan_to_num(daily_ret, nan=0.0)
-                
-                portfolio_return = np.dot(weights, daily_ret)
-                portfolio_returns[date] = portfolio_return
-                current_value = current_value * (1 + portfolio_return)
-                portfolio_values[date] = current_value
+                shares[asset] = 0
+
+        period_prices = prices_copy.loc[start_date:end_date, valid_assets]
+        prev_value = None
+        
+        for date in period_prices.index:
+            daily_prices = period_prices.loc[date]
+            portfolio_value = sum(shares.get(asset, 0) * daily_prices[asset] 
+                                 for asset in valid_assets 
+                                 if not np.isnan(daily_prices[asset]))
+            
+            portfolio_values[date] = portfolio_value
+
+            if prev_value is not None and prev_value > 0:
+                portfolio_returns[date] = (portfolio_value - prev_value) / prev_value
+            else:
+                portfolio_returns[date] = 0.0
+            
+            prev_value = portfolio_value
+
+        current_value = portfolio_value
     
     portfolio_values = portfolio_values.dropna()
     portfolio_returns = portfolio_returns.dropna()
