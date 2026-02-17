@@ -1,6 +1,6 @@
 import json
 import os
-from .data_engineering import validate_and_clean_data
+from .data_engineering import validate_and_clean_data, fix_price_anomalies
 from .fetch_data import fetch_stock_data, fetch_risk_free_rate
 
 def get_stock_prices(market, 
@@ -28,6 +28,8 @@ def get_stock_prices(market,
     risk_free_rate = fetch_risk_free_rate(risk_free_rate_ticker)
 
     prices_tmp = raw_prices[columns]
+
+    prices_tmp, excluded_anomalies = fix_price_anomalies(prices_tmp, max_daily_change=0.5, max_anomalies=3)
 
     clean_prices, excluded_assets = validate_and_clean_data(prices_tmp)
 
