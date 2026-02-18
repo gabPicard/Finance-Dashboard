@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import warnings
 from qpsolvers import solve_qp
+from ..metrics.portfolio_measurements import compound_growth_rate
 
 def optimize_portfolio(cov_matrix, expected_returns, target_returns=None, max_weight=0.15):
     if isinstance(cov_matrix, pd.DataFrame):
@@ -210,7 +211,7 @@ def l2_optimization(prices, risk_free_rate, rebalance_frequency, rho, gamma, max
         try:
             
             cov_matrix = return_tmp.cov() * 252
-            expected_returns = return_tmp.mean() * 252
+            expected_returns = compound_growth_rate(price_tmp, 252)
             
             eigenvalues = np.linalg.eigvals(cov_matrix)
             if np.any(eigenvalues <= 0):
