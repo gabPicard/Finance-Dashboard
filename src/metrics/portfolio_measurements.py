@@ -113,3 +113,9 @@ def realized_returns(weights_backtest, prices, initial_value=100):
         'final_value': portfolio_values.iloc[-1],
         'initial_value': initial_value
     }
+
+
+def compound_growth_rate(price, duration):
+    n = len(price)
+    cgr = (price.iloc[-1] / price.iloc[0]) ** (duration / n) - 1
+    return cgr
