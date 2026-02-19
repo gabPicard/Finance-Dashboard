@@ -104,3 +104,52 @@ Duration:     {(portfolio_value.index[-1] - portfolio_value.index[0]).days} days
                      transform=ax_stats.transAxes)
 
     plt.show()
+
+def market_comparison(portfolio_perf, market_prices, initial_value=100, title="Portfolio vs Market"):
+    """
+    Plot portfolio value and market price over time on a single graph.
+    
+    :param portfolio_perf: dict from realized_returns with 'portfolio_value' key
+    :param market_prices: DataFrame or Series with market price data (Close prices)
+    :param initial_value: initial portfolio value for normalization
+    :param title: title for the plot
+    """
+    fig, ax = plt.subplots(figsize=(14, 7))
+    
+    if portfolio_perf is not None and 'portfolio_value' in portfolio_perf:
+        portfolio_value = portfolio_perf['portfolio_value']
+
+        if isinstance(market_prices, pd.DataFrame):
+            market_close = market_prices.iloc[:, 0] if market_prices.shape[1] > 0 else market_prices.iloc[:, 0]
+        else:
+            market_close = market_prices
+
+        market_close = market_close[market_close.index >= portfolio_value.index[0]]
+        market_close = market_close[market_close.index <= portfolio_value.index[-1]]
+
+        market_normalized = (market_close / market_close.iloc[0]) * initial_value
+
+        ax.plot(portfolio_value.index, portfolio_value.values, 
+               color='#2E86AB', linewidth=2.5, label='Portfolio')
+        ax.plot(market_normalized.index, market_normalized.values,
+               color='#F18F01', linewidth=2.5, label='Market Index')
+        
+        ax.fill_between(portfolio_value.index, initial_value, portfolio_value.values,
+                       where=(portfolio_value.values >= initial_value),
+                       alpha=0.2, color='green', label='Gain')
+        ax.fill_between(portfolio_value.index, initial_value, portfolio_value.values,
+                       where=(portfolio_value.values < initial_value),
+                       alpha=0.2, color='red', label='Loss')
+        
+        ax.axhline(y=initial_value, color='gray', linestyle='--', alpha=0.5, linewidth=1)
+        
+        ax.set_xlabel('Date', fontweight='bold', fontsize=11)
+        ax.set_ylabel('Value ($)', fontweight='bold', fontsize=11)
+        ax.set_title(title, fontweight='bold', fontsize=13)
+        ax.legend(loc='best', fontsize=10)
+        ax.grid(True, alpha=0.3)
+        
+        plt.tight_layout()
+    else:
+        print("Error: Please provide portfolio_perf dict with 'portfolio_value' key")
+    
