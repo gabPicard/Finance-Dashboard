@@ -62,6 +62,8 @@
         "Risk free rate": [
             "^FCHI"
         ],
+        "Market ticker": 
+            "^FCHI",
         "Tickers list": [
             "EN.PA",
             "ENGI.PA",
