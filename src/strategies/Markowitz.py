@@ -269,7 +269,6 @@ def rolling_window(prices: pd.DataFrame,
                 weights_backtest.loc[ind, 'expected_return'] = best_portfolio['expected return']
                 weights_backtest.loc[ind, 'std'] = best_portfolio['standard deviation']
                 
-                # Store as last valid weights
                 last_valid_weights = {
                     'weights': best_portfolio['weights'],
                     'sharpe_ratio': best_portfolio['sharpe ratio'],
@@ -431,7 +430,8 @@ def l2_optimization(prices: pd.DataFrame,
 
 def find_best_params(prices: pd.DataFrame, 
                      risk_free_rate: float, 
-                     deciding_value: str="Lowest std"):
+                     deciding_value: str="std"
+                    ) -> tuple:
     """
     Function to find the best L2-optimization parameter based on a comparison variable
 
@@ -441,6 +441,13 @@ def find_best_params(prices: pd.DataFrame,
     :type risk_free_rate: float
     :param deciding_value: [Optional] The value used to compare the optimized portfolios
     :type deciding_value: str
+
+    :returns tuple:
+        - Best rho
+
+        - Best gamma
+    
+    :rtype tuple: tuple
     """
     rebalance_frequency = 'QE'
     max_weight = 0.15
@@ -453,6 +460,10 @@ def find_best_params(prices: pd.DataFrame,
         index=pd.Index(gammas, name="gamma"),
         columns=pd.MultiIndex.from_product([rhos, metrics], names=["rho", "metric"]),
     )
+
+    max_metric = 0
+    best_gamma = 0
+    best_rho = 0
 
     for ind_gammas in gammas:
         for ind_rhos in rhos:
@@ -470,5 +481,21 @@ def find_best_params(prices: pd.DataFrame,
             params.loc[ind_gammas, (ind_rhos, 'Return')] = last_metrics['expected_return']
             params.loc[ind_gammas, (ind_rhos, 'Sharpe Ratio')] = last_metrics['sharpe_ratio']
             params.loc[ind_gammas, (ind_rhos, 'Standard Deviation')] = last_metrics['std']
+
+            if deciding_value == "return":
+                if last_metrics['expected_return'] > max_metric:
+                    max_metric = last_metrics['expected_return']
+                    best_gamma, best_rho = ind_gammas, ind_rhos
+            elif deciding_value == "std":
+                if -last_metrics['std'] < max_metric:
+                    max_metric = -last_metrics['std']
+                    best_gamma, best_rho = ind_gammas, ind_rhos
+            elif deciding_value == "sharpe":
+                if last_metrics['sharpe_ratio'] > max_metric:
+                    max_metric = last_metrics['sharpe_ratio']
+                    best_gamma, best_rho = ind_gammas, ind_rhos
     
-    return params
+    if deciding_value is None:
+        return params
+
+    return best_gamma, best_rho
