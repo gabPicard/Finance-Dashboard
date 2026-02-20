@@ -4,7 +4,26 @@ import warnings
 from qpsolvers import solve_qp
 from ..metrics.portfolio_measurements import compound_growth_rate
 
-def optimize_portfolio(cov_matrix, expected_returns, target_returns=None, max_weight=0.15):
+def optimize_portfolio(cov_matrix: pd.DataFrame, 
+                       expected_returns: pd.Series, 
+                       target_return: float=None, 
+                       max_weight: float=0.15
+                    ) -> np.ndarray:
+    """
+    Optimize the weights of the portfolio to obtain the lowest Std, with a specific return or not.
+
+    :param cov_matrix: The matrix of covariances bewteen assets
+    :type cov_matrix: pd.Series
+    :param expected_returns: The average return of the assets
+    :type expected_returns: pd.DataFrame
+    :param target_return: [Optional] The return we want to optimize for
+    :type target_return: float
+    :param max_weight: [Optional] The maximum weight an asset can hold in the portfolio
+    :type max_weight: float
+
+    :returns weights: A vector of each asset's weight in the portfolio
+    :rtype weights: ndarray
+    """
     if isinstance(cov_matrix, pd.DataFrame):
         cov_matrix = cov_matrix.values
     if isinstance(expected_returns, pd.Series):
@@ -18,9 +37,9 @@ def optimize_portfolio(cov_matrix, expected_returns, target_returns=None, max_we
     A_list = [np.ones((1, len(expected_returns)))]
     b_list = [1.0]
     
-    if target_returns is not None:
+    if target_return is not None:
         A_list.append(expected_returns.reshape(1, -1))
-        b_list.append(target_returns)
+        b_list.append(target_return)
     
     A = np.vstack(A_list)
     b = np.array(b_list)
@@ -48,7 +67,30 @@ def optimize_portfolio(cov_matrix, expected_returns, target_returns=None, max_we
     
     return weights
 
-def calculate_efficient_frontier(cov_matrix, expected_returns, num_portfolios=100, max_weight=0.15):
+def calculate_efficient_frontier(cov_matrix: pd.DataFrame, 
+                                 expected_returns: pd.Series, 
+                                 num_portfolios: int=100, 
+                                 max_weight: float=0.15
+                                 ) -> dict:
+    """
+    Compute an efficient frontier of optimized portfolios with different expected returns
+
+    :param cov_matrix: the covariance matrix of all assets
+    :type cov_matrix: pd.DataFrame
+    :param expected_returns: the average return of all assets
+    :type expected_returns: pd.Series
+    :param num_portfolios: [Optional] The number of portfolios computed in the frontier
+    :type num_portfolios: int
+    :param max_weight: [Optional] The maximum weight an asset can hold in a portfolio
+    :type max_weight: float
+
+    :returns dict:
+        - weights: np.array of list of each portfolio's weights
+
+        - returns: np.array of each portfolio's expected return
+
+        - std: list of each portfolio's std
+    """
     target_returns = np.linspace(expected_returns.min(), expected_returns.max(), num_portfolios)
     weights_list = []
     std_list = []
@@ -62,18 +104,73 @@ def calculate_efficient_frontier(cov_matrix, expected_returns, num_portfolios=10
             valid_returns.append(target)
     return {"weights":np.array(weights_list), "returns":np.array(valid_returns), "std":std_list}
 
-def portfolio_performance(weights, expected_returns, cov_matrix):
+def portfolio_performance(weights: np.array, 
+                          expected_returns: np.array, 
+                          cov_matrix: np.ndarray
+                        ) -> dict:
+    """
+    Compute all metrics to measure a portfolio performance
+
+    :param weights: The assets' weights of the portfolio
+    :type weights: np.array
+    :param expected_returns: The assets' average return
+    :type expected_returns: np.array
+    :param cov_matrix: The matrix of covariances between assets
+    :type cov_matrix: np.ndarray
+
+    :returns dict: 
+        - return
+        
+        - std
+    """
     portfolio_return = np.dot(weights, expected_returns)
     portfolio_variance = np.dot(weights.T, np.dot(cov_matrix, weights))
     portfolio_std = np.sqrt(portfolio_variance)
     return {"return":portfolio_return, "std":portfolio_std}
 
-def sharpe_ratio(portfolio_return, std, risk_free_rate):
+def sharpe_ratio(portfolio_return: float, 
+                 std: float, 
+                 risk_free_rate: float
+                 ) -> float:
+    """
+    Compute the Sharpe Ratio of a portfolio.
+
+    :param portfolio_return: The expected return of the portfolio
+    :type portfolio_return: float
+    :param std: The Standard Deviation of the portfolio
+    :type std: float
+    :param risk_free_rate: The risk free return rate
+    :type risk_free_rate: float
+
+    :returns sharpe: The sharpe ratio
+    """
     if std == 0 or np.isnan(std):
         return 0.0
     return (portfolio_return - risk_free_rate) / std
 
-def best_sharpe_ratio(efficient_frontier, risk_free_rate):
+def best_sharpe_ratio(efficient_frontier: dict, 
+                      risk_free_rate: float
+                    ) -> dict:
+    """
+    Find the portfolio with the best Sharpe Ratio in an efficient frontier
+
+    :param efficient_frontier: A dictionnary with all the portfolios' weight, return and std. 
+                                Use the calculate_efficient_frontier function.
+    :type efficient_frontier: dict
+    :param risk_free_rate: The risk free return rate
+    :type risk_free_rate: float
+
+    :returns portfolio:
+        - sharpe ratio
+
+        - weights
+
+        - expected return
+
+        - std
+
+    :rtype portfolio: dict
+    """
     returns = efficient_frontier['returns']
     std_list = efficient_frontier['std']
     max_sharpe = 0
@@ -89,7 +186,32 @@ def best_sharpe_ratio(efficient_frontier, risk_free_rate):
             "standard deviation": std_list[index]
             }
 
-def rolling_window(prices, risk_free_rate, rebalance_frequency, strategy="Best sharpe", max_weight=0.15):
+def rolling_window(prices: pd.DataFrame, 
+                   risk_free_rate: float, 
+                   rebalance_frequency: str='QE', 
+                   strategy: str="Best sharpe", 
+                   max_weight: float=0.15
+                ) -> pd.DataFrame:
+    """
+    Use the optimization algorithm at every rebalancing date on a long period of time.
+
+    At each rebalancing date, the algorithm uses the past year data.
+
+    :param prices: The assets prices
+    :type prices: pd.DataFrame
+    :param risk_free_rate: The risk-free return rate
+    :type risk_free_rate: float
+    :param rebalance_frequency: [Optional] The frequency of weights rebalancement. Must use a yfinance accepted std
+    :type reblance_frequency: str
+    :param strategy: [Optional] Wich strategy to use for weights: Lowest std or Best Sharpe Ratio ?
+    :type strategy: str
+    :param max_weight: [Optional] The maximum weight an asset can hold in the portfolio
+    :type max_weight: float
+
+    :returns weights: A DataFrame containing the portfolio's weights with every rebalancing date as the index
+    :rtype weights: pd.DataFrame
+
+    """
     prices_copy = prices.copy()
     prices_copy['date'] = pd.to_datetime(prices_copy['date'])
     prices_copy = prices_copy.set_index('date').sort_index()
@@ -103,7 +225,7 @@ def rolling_window(prices, risk_free_rate, rebalance_frequency, strategy="Best s
     max_weight = max(0.15, 1/len(asset_columns))
     
     weights_backtest = pd.DataFrame(index=index_rebalancement, columns=all_columns)
-    last_valid_weights = None  # Track last successful optimization
+    last_valid_weights = None
     
     for ind in index_rebalancement:
         price_tmp = prices_copy[:ind].tail(252)
@@ -188,7 +310,34 @@ def rolling_window(prices, risk_free_rate, rebalance_frequency, strategy="Best s
 
     return weights_backtest
 
-def l2_optimization(prices, risk_free_rate, rebalance_frequency, rho, gamma, max_weight=0.15):
+def l2_optimization(prices: pd.DataFrame, 
+                    risk_free_rate: float, 
+                    rho: float, 
+                    gamma: float, 
+                    rebalance_frequency: str='QE', 
+                    max_weight: float=0.15
+                ) -> pd.DataFrame:
+    """
+    Use the optimization algorithm at every rebalancing date on a long period of time, using an L2-optimization algorithm.
+
+    At each rebalancing date, the algorithm uses the past year data.
+
+    :param prices: The assets prices
+    :type prices: pd.DataFrame
+    :param risk_free_rate: The risk-free return rate
+    :type risk_free_rate: float
+    :param rho: Represents how much the past portfolio matters in the current one
+    :type rho: float
+    :param gamma: L2-optimization parameter
+    :type gamma: float
+    :param rebalance_frequency: [Optional] The frequency of weights rebalancement. Must use a yfinance accepted std
+    :type reblance_frequency: str
+    :param max_weight: [Optional] The maximum weight an asset can hold in the portfolio
+    :type max_weight: float
+
+    :returns weights: A DataFrame containing the portfolio's weights with every rebalancing date as the index
+    :rtype weights: pd.DataFrame
+    """
     prices_copy = prices.copy()
     prices_copy['date'] = pd.to_datetime(prices_copy['date'])
     prices_copy = prices_copy.set_index('date').sort_index()
@@ -280,7 +429,19 @@ def l2_optimization(prices, risk_free_rate, rebalance_frequency, rho, gamma, max
     
     return weights_backtest
 
-def find_best_params(prices, risk_free_rate, deciding_value="Lowest std"):
+def find_best_params(prices: pd.DataFrame, 
+                     risk_free_rate: float, 
+                     deciding_value: str="Lowest std"):
+    """
+    Function to find the best L2-optimization parameter based on a comparison variable
+
+    :param prices: The assets' historical prices
+    :type prices: pd.DataFrame
+    :param risk_free_rate: The risk-free return rate
+    :type risk_free_rate: float
+    :param deciding_value: [Optional] The value used to compare the optimized portfolios
+    :type deciding_value: str
+    """
     rebalance_frequency = 'QE'
     max_weight = 0.15
 
@@ -311,6 +472,3 @@ def find_best_params(prices, risk_free_rate, deciding_value="Lowest std"):
             params.loc[ind_gammas, (ind_rhos, 'Standard Deviation')] = last_metrics['std']
     
     return params
-
-def main():
-    ...
