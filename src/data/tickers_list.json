@@ -6,6 +6,8 @@
             "^TNX",
             "^TYX"
         ],
+        "Market Ticker":
+            "^GSPC",
         "Tickers list": [
             "NVDA",
             "AAPL",
@@ -99,6 +101,8 @@
         "Risk free rate": [
             "^IRX"
         ],
+        "Market Ticker":
+            "^GDAXI",
         "Tickers list": [
             "6RV.MU",
             "12DA.MU",
@@ -136,6 +140,8 @@
         "Risk free rate": [
             "^IRX"
         ],
+        "Market Ticker": 
+            "^AEX",
         "Tickers list": [
             "ASML",
             "SHELL.AS",
@@ -173,6 +179,8 @@
         "Risk free rate": [
             "^IRX"
         ],
+        "Market Ticker":
+            "^IBEX",
         "Tickers list": [
             "ITX.MC",
             "AIR.MC",
