@@ -222,6 +222,8 @@
         "Risk free rate": [
             "^IRX"
         ],
+        "Market Ticker":
+            "^VNINDEX.VN",
         "Tickers list": [
             "VIC.VN",
             "VCB.VN",
