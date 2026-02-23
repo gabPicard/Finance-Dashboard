@@ -12,8 +12,19 @@ def fetch_stock_data(
     """
     Fetch historical data about a stock or a list of stocks.
 
-    :return: ['Date', 'Ticker', 'Open', 'High', 'Low', 'Close', 'Volume']
-    :rtype: dict
+    :param tickers: The ticker or tickers list
+    :type tickers: str | list[str]
+    :param start_date: [Optional] The starting point for fetching. If None, will use period to compute the start date
+    :type start_date: str
+    :param end_date: [Optional] The end point for fetching. By default, today
+    :type end_date: str
+    :param period: [Optional] The period for fetching. By default, 1 year
+    :type period: str
+    :param interval: [Optional] The interval to fecth data. By default, 1 day
+    :type interval: str
+
+    :return data: ['Date', 'Ticker', 'Open', 'High', 'Low', 'Close', 'Volume']
+    :rtype data: dict
     """
     if isinstance(tickers, str):
         tickers = [tickers]
@@ -29,6 +40,11 @@ def fetch_stock_data(
 def fetch_stock_info(tickers: str | list[str]) -> dict:
     """
     Fetch numerous informations about a stock or a list of stocks
+
+    :param tickers: The ticker or the tickers list of the company/ies
+    :type tickers: str | list[str]
+
+    :returns info: A dictionnary with all infos
     """
     if isinstance(tickers, str):
         tickers = [tickers]
@@ -48,6 +64,12 @@ def fetch_stock_info(tickers: str | list[str]) -> dict:
 def fetch_risk_free_rate(ticker: str = "^FVX") -> float:
     """
     Fetch the risk free rate, returns 4% by default.
+
+    :param ticker: The ticker of the risk free return rate
+    :type ticker: str
+
+    :returns rate: The risk free return rate, 0.04 by default
+    :rtype rate: float
     """
     try:
         treasury = yf.Ticker(ticker)
