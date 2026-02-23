@@ -115,8 +115,21 @@ def realized_returns(weights_backtest, prices, initial_value=100):
     }
 
 
-def compound_growth_rate(price, duration):
-    n = len(price)
-    cgr = (price.iloc[-1] / price.iloc[0]) ** (duration / n) - 1
+def compound_growth_rate(prices: pd.DataFrame, 
+                         duration: int
+                        ) -> float:
+    """
+    Compute The CGR: compound growth rate
+
+    :param prices: Assets' historical prices
+    :type prices: pd.DataFrame
+    :param duration: The duration of the prices
+    :type duration: int
+
+    :returns cgr: The compound growth rate
+    :rtype cgr: float
+    """
+    n = len(prices)
+    cgr = (prices.iloc[-1] / prices.iloc[0]) ** (duration / n) - 1
     return cgr
 

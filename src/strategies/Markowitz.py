@@ -299,7 +299,6 @@ def rolling_window(prices: pd.DataFrame,
                 weights_backtest.loc[ind, 'expected_return'] = performance['return']
                 weights_backtest.loc[ind, 'std'] = performance['std']
                 
-                # Store as last valid weights
                 last_valid_weights = {
                     'weights': opt_weights,
                     'sharpe_ratio': sharpe,
