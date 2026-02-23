@@ -65,3 +65,21 @@ def fetch_risk_free_rate(ticker: str = "^FVX") -> float:
         print(f"Erreur lors de la récupération du taux sans risque: {e}")
         print("Utilisation du taux par défaut de 4.0%")
         return 0.04
+    
+def get_company_name(ticker: str) -> str:
+    """
+    Get the name of the company using the ticker and the fetch_stock_info function.
+
+    :param ticker: The ticker of the company you are looking for
+    :type ticker: str
+
+    :returns name: The name of the company. Returns None if it failed.
+    :rtype name: str
+    """
+    try:
+        info = fetch_stock_info(ticker).get(ticker, {})
+        name = info.get("displayName")
+    except Exception as e:
+        print(f"Error fetching info for {ticker}: {e}")
+        name = None
+    return name
