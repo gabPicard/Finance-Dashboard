@@ -55,3 +55,32 @@ def get_tickers_list(market: list[str]):
         rfr = rfr[0]
     
     return tickers, rfr
+
+def delete_assets(excluded_assets: list[str], 
+                  market: str
+                ) -> None:
+    """
+    Delete assets from the ticker list in the json file for a specified market.
+
+    :param excluded_assets: Assets to exclude, must be a list of tickers
+    :type excluded_assets: list[str]
+    :param market: The market we want to update
+    :type market: str
+    """
+    try:
+        json_path = os.path.join(os.path.dirname(__file__), 'tickers_list.json')
+        with open(json_path) as f:
+            data = json.load(f)
+            tickers = data[market]['Tickers list']
+        if excluded_assets in tickers:
+            exclude_set = set(excluded_assets)
+            tickers_updated = [t for t in tickers if t not in exclude_set]
+
+            data[market]['Tickers lis'] = tickers_updated
+
+            with json_path.open("w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2)
+        else:
+            print("Assets to exclude are not present in this market")
+    except Exception as e: 
+        print(f"Error while modifying the json: {e}")
