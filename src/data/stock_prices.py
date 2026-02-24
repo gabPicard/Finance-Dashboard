@@ -36,12 +36,12 @@ def get_stock_prices(market,
     return clean_prices, risk_free_rate
 
 
-def get_tickers_list(market: list[str]):
+def get_tickers_list(market: str):
     """
     Get the list of every asset's ticker in the market and the risk free rate ticker
     
     :param market: Must be the name of a known market in the json file.
-    :type market: list[str]
+    :type market: str
 
     :returns tuple: tickers list | risk free rate
     """
