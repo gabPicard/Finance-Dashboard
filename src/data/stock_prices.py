@@ -33,6 +33,9 @@ def get_stock_prices(market,
 
     clean_prices, excluded_assets = validate_and_clean_data(prices_tmp)
 
+    if len(excluded_assets) > 0:
+        delete_assets(excluded_assets, market)
+
     return clean_prices, risk_free_rate
 
 
@@ -76,9 +79,9 @@ def delete_assets(excluded_assets: list[str],
             exclude_set = set(excluded_assets)
             tickers_updated = [t for t in tickers if t not in exclude_set]
 
-            data[market]['Tickers lis'] = tickers_updated
+            data[market]['Tickers list'] = tickers_updated
 
-            with json_path.open("w", encoding="utf-8") as f:
+            with open(json_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2)
         else:
             print("Assets to exclude are not present in this market")
