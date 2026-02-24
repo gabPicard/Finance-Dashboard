@@ -1,6 +1,6 @@
 import json
 import os
-from .data_engineering import validate_and_clean_data, fix_price_anomalies
+from .data_engineering import validate_and_clean_data, fix_price_anomalies, delete_assets
 from .fetch_data import fetch_stock_data, fetch_risk_free_rate
 
 def get_stock_prices(market: str, 
@@ -70,52 +70,3 @@ def get_tickers_list(market: str):
         rfr = rfr[0]
     
     return tickers, rfr
-
-def delete_assets(excluded_assets: list[str], 
-                  market: str
-                ) -> None:
-    """
-    Delete assets from the ticker list in the json file for a specified market.
-
-    :param excluded_assets: Assets to exclude, must be a list of tickers
-    :type excluded_assets: list[str]
-    :param market: The market we want to update
-    :type market: str
-    """
-    try:
-        json_path = os.path.join(os.path.dirname(__file__), 'tickers_list.json')
-        with open(json_path) as f:
-            data = json.load(f)
-            tickers = data[market]['Tickers list']
-        if check_assets_in_market(excluded_assets, tickers):
-            exclude_set = set(excluded_assets)
-            tickers_updated = [t for t in tickers if t not in exclude_set]
-
-            data[market]['Tickers list'] = tickers_updated
-
-            with open(json_path, "w", encoding="utf-8") as f:
-                json.dump(data, f, indent=2)
-        else:
-            print("Assets to exclude are not present in this market")
-    except Exception as e: 
-        print(f"Error while modifying the json: {e}")
-
-def check_assets_in_market(assets: list[str],
-                           market_list: list[str]
-                        ) -> bool:
-    """
-    Check if all assets tickers are in the market
-
-    :param assets: The list of assets we want to check
-    :type assets: list[str]
-    :param market_list: The list of all tickers from a market
-    :type market_list: list[str]
-
-    :returns check: True if all assets are in the market, False otherwise
-    :retype check: bool
-    """
-    check = True
-    for a in assets:
-        if a not in market_list:
-            check = False
-    return check
