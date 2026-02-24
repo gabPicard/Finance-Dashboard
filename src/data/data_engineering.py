@@ -1,6 +1,7 @@
 import numpy as np
 import warnings
 import pandas as pd
+from .fetch_data import get_company_name
 
 def fix_price_anomalies(prices: pd.DataFrame, max_daily_change: float = 0.5, max_anomalies: int = 3) -> tuple:
     """
@@ -111,3 +112,48 @@ def validate_and_clean_data(returns: np.ndarray,
         warnings.warn(f"Excluded {len(excluded_assets)} assets due to data quality issues")
     
     return cleaned_returns, excluded_assets
+
+def format_portfolio(weights: np.ndarray,
+                     tickers_list: list[str],
+                     portfolio_value: float = 100,
+                     to_txt: bool = False,
+                     txt_file_name: str = None
+                    ) -> str:
+    """
+    Properly give a detailled assets repartition in the portfolio.
+
+    :param weights: The weights of each assets, in order
+    :type weights: np.ndarray
+    :param tickers_list: Each asset's ticker, with the same order
+    :type tickers_list: list[str]
+    :param portfolio_value: [Optional] The total value of the portfolio, by default 100
+    :type portfolio_value: float
+    :param to_txt: Create a .txt file if this boolean is true
+    :type to_txt: bool
+    :param txt_file_name: The name of the file to save the assets' weights
+    :type txt_file_name: str
+
+    :returns repartition: assets' weights. None if it encounters an error
+    :rtype repartition: str
+    """
+    if weights is None:
+        print("Weights list is None")
+        return None
+    if tickers_list is None or len(tickers_list) == 0:
+        print("Tickers list doesn't exist")
+        return None
+    if weights.shape[0] != len(tickers_list):
+        print("Weights list and Tickers list must have the same format")
+        return None
+    if to_txt and txt_file_name is None:
+        txt_file_name = "weights repartition"
+    repartition = ""
+    for i in range (0, weights.shape[0]):
+        repartition += tickers_list[i] + "   "
+        + get_company_name(tickers_list[i])
+        + weights[i]*100 + "%   "
+        + weights[i]*portfolio_value + "\n"
+    if to_txt:
+        with open(txt_file_name, "w") as file:
+            file.write(repartition)
+    return repartition
