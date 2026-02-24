@@ -9,7 +9,7 @@ def get_stock_prices(market: str,
                      period="1y", 
                      interval="1d",
                      columns=['Close']
-                    ) -> dict | float:
+                    ) -> tuple:
     """
     Get clean and validate historical stock prices and the risk free rate.
     
@@ -24,10 +24,12 @@ def get_stock_prices(market: str,
     :param interval: [Optional] The interval to fecth data. By default, 1 day
     :type interval: str
 
-    :returns clean_prices: ['Date', 'Ticker', 'Open', 'High', 'Low', 'Close', 'Volume']
-    :rtype clean_prices: dict
+    :returns clean_prices: DataFrame of cleaned prices
+    :rtype clean_prices: pd.DataFrame
     :returns risk_free_rate: The risk free return rate
-    :rtype rirks_free_rate: float
+    :rtype risk_free_rate: float
+    :returns actual_tickers: List of tickers that remain after cleaning (may differ from initial list)
+    :rtype actual_tickers: list[str]
     """
     
     tickers_list, risk_free_rate_ticker = get_tickers_list(market)
@@ -45,10 +47,13 @@ def get_stock_prices(market: str,
 
     clean_prices, excluded_assets = validate_and_clean_data(prices_tmp)
 
-    if len(excluded_assets) > 0:
-        delete_assets(excluded_assets, market)
+    all_excluded = excluded_anomalies + [ticker for ticker, reason in excluded_assets]
+    if all_excluded:
+        delete_assets(all_excluded, market)
 
-    return clean_prices, risk_free_rate
+    actual_tickers = clean_prices.columns.tolist()
+    
+    return clean_prices, risk_free_rate, actual_tickers
 
 
 def get_tickers_list(market: str):
