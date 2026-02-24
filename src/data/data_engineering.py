@@ -2,6 +2,7 @@ import numpy as np
 import warnings
 import pandas as pd
 import json
+import os
 from .fetch_data import get_company_name
 
 def fix_price_anomalies(prices: pd.DataFrame, max_daily_change: float = 0.5, max_anomalies: int = 3) -> tuple:
@@ -153,19 +154,19 @@ def format_portfolio(weights: np.ndarray,
         repartition += tickers_list[i] + "   "
         + get_company_name(tickers_list[i])
         + weights[i]*100 + "%   "
-        + weights[i]*portfolio_value + "\n"
-    if to_txt:
-        with open(txt_file_name, "w") as file:
-            file.write(repartition)
+        + weights[i]*portfolio_value + "\n"    
+        if to_txt:
+            with open(txt_file_name, "w") as file:
+                file.write(repartition)
     return repartition
 
-def delete_assets(excluded_assets: list[str], 
+def delete_assets(excluded_assets: list, 
                   market: str
                 ) -> None:
     """
     Delete assets from the ticker list in the json file for a specified market.
 
-    :param excluded_assets: Assets to exclude, must be a list of tickers
+    :param excluded_assets: Assets to exclude, must be a list of tickers or tuples (column, ticker)
     :type excluded_assets: list[str]
     :param market: The market we want to update
     :type market: str
@@ -175,8 +176,11 @@ def delete_assets(excluded_assets: list[str],
         with open(json_path) as f:
             data = json.load(f)
             tickers = data[market]['Tickers list']
-        if check_assets_in_market(excluded_assets, tickers):
-            exclude_set = set(excluded_assets)
+        
+        excluded_tickers = [asset[1] if isinstance(asset, tuple) else asset for asset in excluded_assets]
+        
+        if check_assets_in_market(excluded_tickers, tickers):
+            exclude_set = set(excluded_tickers)
             tickers_updated = [t for t in tickers if t not in exclude_set]
 
             data[market]['Tickers list'] = tickers_updated
@@ -204,6 +208,7 @@ def check_assets_in_market(assets: list[str],
     """
     check = True
     for a in assets:
+        print(a)
         if a not in market_list:
             check = False
     return check
