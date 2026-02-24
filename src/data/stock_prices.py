@@ -72,7 +72,7 @@ def delete_assets(excluded_assets: list[str],
         with open(json_path) as f:
             data = json.load(f)
             tickers = data[market]['Tickers list']
-        if excluded_assets in tickers:
+        if check_assets_in_market(excluded_assets, tickers):
             exclude_set = set(excluded_assets)
             tickers_updated = [t for t in tickers if t not in exclude_set]
 
@@ -84,3 +84,23 @@ def delete_assets(excluded_assets: list[str],
             print("Assets to exclude are not present in this market")
     except Exception as e: 
         print(f"Error while modifying the json: {e}")
+
+def check_assets_in_market(assets: list[str],
+                           market_list: list[str]
+                        ) -> bool:
+    """
+    Check if all assets tickers are in the market
+
+    :param assets: The list of assets we want to check
+    :type assets: list[str]
+    :param market_list: The list of all tickers from a market
+    :type market_list: list[str]
+
+    :returns check: True if all assets are in the market, False otherwise
+    :retype check: bool
+    """
+    check = True
+    for a in assets:
+        if a not in market_list:
+            check = False
+    return check
