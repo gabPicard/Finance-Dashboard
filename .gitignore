@@ -208,3 +208,6 @@ __marimo__/
 
 # Temporary build
 temp.py
+
+# Weights files
+data/*.txt
