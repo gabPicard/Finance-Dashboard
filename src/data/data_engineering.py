@@ -119,7 +119,8 @@ def format_portfolio(weights: np.ndarray,
                      tickers_list: list[str],
                      portfolio_value: float = 100,
                      to_txt: bool = False,
-                     txt_file_name: str = None
+                     txt_file_name: str = None,
+                     decimals: int = 2
                     ) -> str:
     """
     Properly give a detailled assets repartition in the portfolio.
@@ -134,6 +135,8 @@ def format_portfolio(weights: np.ndarray,
     :type to_txt: bool
     :param txt_file_name: The name of the file to save the assets' weights
     :type txt_file_name: str
+    :param decimals: Number of decimal places to round to, by default 2
+    :type decimals: int
 
     :returns repartition: assets' weights. None if it encounters an error
     :rtype repartition: str
@@ -151,13 +154,18 @@ def format_portfolio(weights: np.ndarray,
         txt_file_name = "weights repartition"
     repartition = ""
     for i in range (0, weights.shape[0]):
-        repartition += tickers_list[i] + "   "
-        + get_company_name(tickers_list[i])
-        + weights[i]*100 + "%   "
-        + weights[i]*portfolio_value + "\n"    
-        if to_txt:
-            with open(txt_file_name, "w") as file:
-                file.write(repartition)
+        weight_pct = round(weights[i] * 100, decimals)
+        weight_value = round(weights[i] * portfolio_value, 2)
+            
+        repartition += (tickers_list[i] + "   " + 
+                       str(get_company_name(tickers_list[i])) + "   " +
+                       str(weight_pct) + "%   " +
+                       str(weight_value) + "\n")
+    if to_txt:
+        data_dir = os.path.join(os.path.dirname(__file__), "..", "..", "data")
+        file_path = os.path.join(data_dir, txt_file_name + ".txt")
+        with open(file_path, "w") as file:
+            file.write(repartition)
     return repartition
 
 def delete_assets(excluded_assets: list, 
