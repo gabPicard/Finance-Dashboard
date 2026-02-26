@@ -95,13 +95,13 @@ def get_company_name(ticker: str) -> str:
     :param ticker: The ticker of the company you are looking for
     :type ticker: str
 
-    :returns name: The name of the company. Returns None if it failed.
+    :returns name: The name of the company. Returns ticker if it failed.
     :rtype name: str
     """
     try:
         info = fetch_stock_info(ticker).get(ticker, {})
-        name = info.get("displayName")
+        name = info.get("displayName") or info.get("shortName") or info.get("longName") or ticker
     except Exception as e:
         print(f"Error fetching info for {ticker}: {e}")
-        name = None
+        return ticker
     return name
