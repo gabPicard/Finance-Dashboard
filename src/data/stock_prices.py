@@ -1,3 +1,4 @@
+import pandas as pd
 import json
 import os
 from .data_engineering import validate_and_clean_data, fix_price_anomalies, delete_assets
@@ -43,17 +44,26 @@ def get_stock_prices(market: str,
 
     prices_tmp = raw_prices[columns]
 
+    if isinstance(prices_tmp.columns, pd.MultiIndex):
+        prices_tmp.columns = [col[1] if col[1] else col[0] for col in prices_tmp.columns]
+
     prices_tmp, excluded_anomalies = fix_price_anomalies(prices_tmp, max_daily_change=0.5, max_anomalies=3)
 
     clean_prices, excluded_assets = validate_and_clean_data(prices_tmp)
 
+    prices_reset = clean_prices.reset_index()
+    if prices_reset.columns[0] == 'index' or prices_reset.columns[0] == 'Date':
+        prices_reset = prices_reset.rename(columns={prices_reset.columns[0]: 'date'})
+    else:
+        prices_reset.insert(0, 'date', clean_prices.index)
+
+    clean_prices = prices_reset
+
     all_excluded = excluded_anomalies + [ticker for ticker, reason in excluded_assets]
     if all_excluded:
         delete_assets(all_excluded, market)
-
-    actual_tickers = clean_prices.columns.tolist()
     
-    return clean_prices, risk_free_rate, actual_tickers
+    return clean_prices, risk_free_rate
 
 
 def get_tickers_list(market: str):
