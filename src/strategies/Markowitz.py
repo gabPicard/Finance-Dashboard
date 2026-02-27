@@ -29,7 +29,7 @@ def optimize_portfolio(cov_matrix: pd.DataFrame,
     if isinstance(expected_returns, pd.Series):
         expected_returns = expected_returns.values
 
-    max_weight = max(0.15, len(expected_returns))
+    max_weight = max(max_weight, len(expected_returns))
 
     P = cov_matrix
     q = np.zeros(len(expected_returns))
@@ -222,7 +222,7 @@ def rolling_window(prices: pd.DataFrame,
     metric_columns = ['sharpe_ratio', 'expected_return', 'std']
     all_columns = asset_columns + metric_columns
 
-    max_weight = max(0.15, 1/len(asset_columns))
+    max_weight = max(max_weight, 1/len(asset_columns))
     
     weights_backtest = pd.DataFrame(index=index_rebalancement, columns=all_columns)
     last_valid_weights = None
@@ -346,7 +346,7 @@ def l2_optimization(prices: pd.DataFrame,
     metric_columns = ['sharpe_ratio', 'expected_return', 'std']
     all_columns = asset_columns + metric_columns
 
-    max_weight = max(0.15, 1/len(asset_columns))
+    max_weight = max(max_weight, 1/len(asset_columns))
     
     weights_backtest = pd.DataFrame(index=index_rebalancement, columns=all_columns)
     weights_old = np.array([1/len(asset_columns) for _ in range(len(asset_columns))])
