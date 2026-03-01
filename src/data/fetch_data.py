@@ -105,3 +105,23 @@ def get_company_name(ticker: str) -> str:
         print(f"Error fetching info for {ticker}: {e}")
         return ticker
     return name
+
+def get_company_sector(ticker: str) -> str:
+    """
+    Get the sector of the company using the ticker and the fetch_stock_info function.
+
+    :param ticker: The ticker of the company you are looking for
+    :type ticker: str
+
+    :returns sector: The sector of the company. Returns Unknown if it failed.
+    :rtype sector: str
+    """
+    try:
+        info = fetch_stock_info(ticker).get(ticker, {})
+        sector = info.get("sector") or info.get("sectorDisp") or info.get("sectorKey") or "Unknown"
+    except Exception as e:
+        print(f"Error fetching info for {ticker}: {e}")
+        return "Unknown"
+    return sector
+
+print(get_company_sector("MSFT"))
