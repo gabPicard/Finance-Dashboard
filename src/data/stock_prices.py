@@ -35,7 +35,7 @@ def get_stock_prices(market: str | list[str],
     
     if isinstance(market, list):
         tickers_list = merge_markets(market)
-        risk_free_rate = "^IRX"
+        risk_free_rate_ticker = "^IRX"
     else:
         tickers_list, risk_free_rate_ticker = get_tickers_list(market)
 
