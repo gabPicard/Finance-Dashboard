@@ -4,7 +4,7 @@ import os
 from .data_engineering import validate_and_clean_data, fix_price_anomalies, delete_assets
 from .fetch_data import fetch_stock_data, fetch_risk_free_rate
 
-def get_stock_prices(market: str, 
+def get_stock_prices(market: str | list[str], 
                      start_date=None, 
                      end_date=None, 
                      period="1y", 
@@ -14,8 +14,8 @@ def get_stock_prices(market: str,
     """
     Get clean and validate historical stock prices and the risk free rate.
     
-    :param market: Must be the name of a known market in the json file.
-    :type market: str
+    :param market: The name of a market, or a list of markets. If it is a list, the program will get each tickers from each markets
+    :type market: str | list[str]
     :param start_date: [Optional] The starting point for fetching. If None, will use period to compute the start date
     :type start_date: str
     :param end_date: [Optional] The end point for fetching. By default, today
@@ -33,7 +33,11 @@ def get_stock_prices(market: str,
     :rtype actual_tickers: list[str]
     """
     
-    tickers_list, risk_free_rate_ticker = get_tickers_list(market)
+    if isinstance(market, list):
+        tickers_list = merge_markets(market)
+        risk_free_rate = "^IRX"
+    else:
+        tickers_list, risk_free_rate_ticker = get_tickers_list(market)
 
     raw_prices = fetch_stock_data(tickers_list,
                                   start_date=start_date,
