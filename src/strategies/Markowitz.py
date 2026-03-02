@@ -29,7 +29,9 @@ def optimize_portfolio(cov_matrix: pd.DataFrame,
     if isinstance(expected_returns, pd.Series):
         expected_returns = expected_returns.values
 
-    max_weight = max(max_weight, len(expected_returns))
+    # Ensure max_weight is valid (between 1/n_assets and 1.0)
+    if max_weight is not None:
+        max_weight = max(min(max_weight, 1.0), 1/len(expected_returns))
 
     P = cov_matrix
     q = np.zeros(len(expected_returns))
@@ -222,7 +224,9 @@ def rolling_window(prices: pd.DataFrame,
     metric_columns = ['sharpe_ratio', 'expected_return', 'std']
     all_columns = asset_columns + metric_columns
 
-    max_weight = max(max_weight, 1/len(asset_columns))
+    # Ensure max_weight is valid (between 1/n_assets and 1.0)
+    if max_weight is not None:
+        max_weight = max(min(max_weight, 1.0), 1/len(asset_columns))
     
     weights_backtest = pd.DataFrame(index=index_rebalancement, columns=all_columns)
     last_valid_weights = None
@@ -346,7 +350,8 @@ def l2_optimization(prices: pd.DataFrame,
     metric_columns = ['sharpe_ratio', 'expected_return', 'std']
     all_columns = asset_columns + metric_columns
 
-    max_weight = max(max_weight, 1/len(asset_columns))
+    if max_weight is not None:
+        max_weight = max(min(max_weight, 1.0), 1/len(asset_columns))
     
     weights_backtest = pd.DataFrame(index=index_rebalancement, columns=all_columns)
     weights_old = np.array([1/len(asset_columns) for _ in range(len(asset_columns))])
@@ -412,6 +417,14 @@ def l2_optimization(prices: pd.DataFrame,
         with warnings.catch_warnings():
             warnings.filterwarnings('ignore', category=UserWarning)
             opt_weights = solve_qp(P, q, G, h, A, b, solver="ecos")
+        
+        if opt_weights is None:
+            warnings.warn(f"Skipping {ind}: Optimization failed to converge - using previous weights")
+            weights_backtest.loc[ind, asset_columns] = weights_old
+            weights_backtest.loc[ind, 'sharpe_ratio'] = np.nan
+            weights_backtest.loc[ind, 'expected_return'] = np.nan
+            weights_backtest.loc[ind, 'std'] = np.nan
+            continue
         
         performance = portfolio_performance(opt_weights, expected_returns, cov_matrix)
         sharpe = sharpe_ratio(performance['return'], performance['std'], risk_free_rate)
