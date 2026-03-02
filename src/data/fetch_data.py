@@ -123,5 +123,3 @@ def get_company_sector(ticker: str) -> str:
         print(f"Error fetching info for {ticker}: {e}")
         return "Unknown"
     return sector
-
-print(get_company_sector("MSFT"))
