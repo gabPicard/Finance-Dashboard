@@ -85,3 +85,24 @@ def get_tickers_list(market: str):
         rfr = rfr[0]
     
     return tickers, rfr
+
+def merge_markets(market_list: list[str]) -> list[str]:
+    """
+    Create a single list of of tickers from multiple markets. Each ticker appear only once.
+
+    :param market_list: The list of all markets
+    :type market_list: list[str]
+
+    :returns tickers_list: A single list of all tickers
+    :rtype tickers_list: list[str]
+    """
+    merged_list = []
+    for market in market_list:
+        try:
+            tickers_list, rfr = get_tickers_list(market)
+            for ticker in tickers_list:
+                if ticker not in merged_list:
+                    merged_list.append(ticker)
+        except Exception as e:
+            print(f"Error when fetching the list of tickers of {market}: {e}")
+    return merged_list
