@@ -3,7 +3,8 @@ import warnings
 import pandas as pd
 import json
 import os
-from .fetch_data import get_company_name
+from collections import defaultdict
+from .fetch_data import get_company_name, get_company_sector
 
 def fix_price_anomalies(prices: pd.DataFrame, max_daily_change: float = 0.5, max_anomalies: int = 3) -> tuple:
     """
@@ -220,3 +221,43 @@ def check_assets_in_market(assets: list[str],
         if a not in market_list:
             check = False
     return check
+
+def sector_diversification(tickers_list: list[str],
+                           to_txt: bool = False,
+                           txt_file_name: str = "portfolio diversification"
+                        ) -> dict:
+    """
+    Create a summary of every asset's sector to measure it's diversification
+
+    :param tickers_list: The list of the portfolio's assets' ticker
+    :type tickers_list: list[str]
+    :param to_txt: [Optional] The option to create a .txt file for the summary
+    :type to_txt: bool
+    :param txt_file_name: [Optional] The name of the file, "portfolio diversification" by default
+    :type txt_file_name: str
+
+    :returns diversification: Each sector represented in the portfolio and the number of assets
+    :rtype diversification: dict
+    """
+    if tickers_list is None or len(tickers_list) == 0:
+        print("No ticker found in the list")
+        return None
+    
+    diversification = defaultdict(int)
+
+    for ticker in tickers_list:
+        sector = get_company_sector(ticker)
+        diversification[sector] += 1
+    
+    if to_txt:
+        result = ""
+
+        for sector in diversification:
+            result += sector + "   " + str(diversification[sector]) + "\n"
+        
+        data_dir = os.path.join(os.path.dirname(__file__), "..", "..", "data")
+        file_path = os.path.join(data_dir, txt_file_name + ".txt")
+        with open(file_path, "w") as file:
+            file.write(result)
+    
+    return diversification
