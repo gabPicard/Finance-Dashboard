@@ -93,6 +93,44 @@
       "KER.PA"
     ]
   },
+  "FTSE100": {
+    "Risk free rate": [
+      "^IRX"
+    ],
+    "Market ticker": "^FTSE",
+    "Tickers list": [
+      "AHT.L",
+      "SDR.L",
+      "TSCO.L",
+      "SHELL.L",
+      "CPG.L",
+      "ENT.L",
+      "EXPN.L",
+      "BA.L",
+      "VOD.L",
+      "BATS.L",
+      "SMIN.L",
+      "AUTO.L",
+      "HLN.L",
+      "CCEP.L",
+      "SSE.L",
+      "AAF.L",
+      "SMT.L",
+      "RMV.L",
+      "CNA.L",
+      "ICG.L",
+      "CCH.L",
+      "PRU.L",
+      "EZJ.L",
+      "DPLM.L",
+      "SPX.L",
+      "MTLN.L",
+      "STJ.L",
+      "RTO.L",
+      "RR.L",
+      "ANTO.L"
+    ]
+  },
   "DAX": {
     "Risk free rate": [
       "^IRX"
