@@ -249,6 +249,44 @@
       "GRF.MC"
     ]
   },
+  "EURONEXT": {
+    "Risk free rate":[
+      "^IRX"
+    ],
+    "Market ticker": "^N100",
+    "Tickers list":[
+      "SHELL.AS",
+      "GALP.LS",
+      "TTE.PA",
+      "SW.PA",
+      "BN.PA",
+      "SAN.PA",
+      "IPN.PA",
+      "ABI.BR",
+      "EN.PA",
+      "HO.PA",
+      "ERF.PA",
+      "CAP.PA",
+      "JMT.LS",
+      "PHIA.AS",
+      "AIR.PA",
+      "RI.PA",
+      "PRX.AS",
+      "AC.PA",
+      "AGN.AS",
+      "ASML",
+      "ASM",
+      "AGS.BR",
+      "KBC.BR",
+      "MC.PA",
+      "VIE.PA",
+      "INGA.AS",
+      "BNP.PA",
+      "LR.PA",
+      "EDP.LS",
+      "KER.PA"
+    ]
+  },
   "HNX": {
     "Risk free rate": [
       "^IRX"
@@ -285,6 +323,45 @@
       "VCK.VN",
       "VRE.VN",
       "PLX.VN"
+    ]
+  },
+  "HSI": {
+    "Risk free rate": [
+      "^IRX"
+    ],
+    "Market ticker": "^HSI",
+    "Tickers list":[
+      "0012.HK",
+      "1044.HK",
+      "1038.HK",
+      "0002.HK",
+      "9618.HK",
+      "0992.HK",
+      "9988.HK",
+      "0267.HK",
+      "2628.HK",
+      "1398.HK",
+      "0669.HK",
+      "0669.HK",
+      "2319.HK",
+      "0027.HK",
+      "0003.HK",
+      "0101.HK",
+      "1209.HK",
+      "2015.HK",
+      "1109.HK",
+      "3690.HK",
+      "9633.HK",
+      "6690.HK",
+      "2020.HK",
+      "0883.HK",
+      "1093.HK",
+      "0241.HK",
+      "2269.HK",
+      "1810.HK",
+      "2688.HK",
+      "2331.HK",
+      "0017.HK"
     ]
   }
 }
