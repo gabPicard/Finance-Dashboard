@@ -121,7 +121,8 @@ def format_portfolio(weights: np.ndarray,
                      portfolio_value: float = 100,
                      to_txt: bool = False,
                      txt_file_name: str = None,
-                     decimals: int = 2
+                     decimals: int = 2,
+                     all_assets: bool = True
                     ) -> str:
     """
     Properly give a detailled assets repartition in the portfolio.
@@ -132,12 +133,14 @@ def format_portfolio(weights: np.ndarray,
     :type tickers_list: list[str]
     :param portfolio_value: [Optional] The total value of the portfolio, by default 100
     :type portfolio_value: float
-    :param to_txt: Create a .txt file if this boolean is true
+    :param to_txt: [Optional] Create a .txt file if this boolean is true
     :type to_txt: bool
-    :param txt_file_name: The name of the file to save the assets' weights
+    :param txt_file_name: [Optional] The name of the file to save the assets' weights
     :type txt_file_name: str
-    :param decimals: Number of decimal places to round to, by default 2
+    :param decimals: [Optional] Number of decimal places to round to, by default 2
     :type decimals: int
+    :param all_assets: [Optional] The option to include all assets (if True) or only those whose weights are not 0
+    :type all_assets: bool
 
     :returns repartition: assets' weights. None if it encounters an error
     :rtype repartition: str
@@ -157,11 +160,12 @@ def format_portfolio(weights: np.ndarray,
     for i in range (0, weights.shape[0]):
         weight_pct = round(weights[i] * 100, decimals)
         weight_value = round(weights[i] * portfolio_value, 2)
-            
-        repartition += (tickers_list[i] + "   " + 
-                       str(get_company_name(tickers_list[i])) + "   " +
-                       str(weight_pct) + "%   " +
-                       str(weight_value) + "\n")
+        
+        if all_assets or weight_value > 0:
+            repartition += (tickers_list[i] + "   " + 
+                           str(get_company_name(tickers_list[i])) + "   " +
+                           str(weight_pct) + "%   " +
+                           str(weight_value) + "\n")
     if to_txt:
         data_dir = os.path.join(os.path.dirname(__file__), "..", "..", "data")
         file_path = os.path.join(data_dir, txt_file_name + ".txt")
