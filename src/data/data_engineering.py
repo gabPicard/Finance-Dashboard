@@ -122,7 +122,7 @@ def format_portfolio(weights: np.ndarray,
                      to_txt: bool = False,
                      txt_file_name: str = None,
                      decimals: int = 2,
-                     all_assets: bool = True
+                     all_assets: bool = False
                     ) -> str:
     """
     Properly give a detailled assets repartition in the portfolio.
