@@ -511,3 +511,48 @@ def find_best_params(prices: pd.DataFrame,
         return params
 
     return best_gamma, best_rho
+
+def MonteCarlo_portfolio(precision: int,
+                         expected_returns: np.ndarray,
+                         cov_matrix: np.ndarray,
+                         risk_free_rate: float = 0.04,
+                         strategy: str = "Lowest std"
+                        ) -> np.ndarray:
+    """
+    Use MonteCarlo method to get a portfolio, with either the lowest std or the best sharpe.
+    Less efficient than the regular optimization, but doesn't rely on matrixes being defined positive.
+
+    :param precision: The number of portfolio created at random
+    :type precision: int
+    :param expected_returns: The expected_returns of each assets
+    :type expected_returns: np.ndarray
+    :param cov_matrix: The covariance matrix between assets
+    :type cov_matrix: np.ndarray
+    :param risk_free_rate: [Optional] The risk free return rate. By default, 4%
+    :type risk_free_rate: float
+    :param strategy: [Optional] The metrics used to get the portfolio. Either "Lowest std" or "Best sharpe"
+    :type strategy: str
+
+    :returns weights: Assets' weight
+    :rtype weights: np.ndarray
+    """
+    best_weights = np.array([])
+    best_param = 0 if strategy == "Best sharpe" else float('inf')
+    
+    for i in range(precision):
+        random_weights = np.random.dirichlet(np.ones(expected_returns.shape[0]))
+        performance = portfolio_performance(random_weights, expected_returns, cov_matrix)
+        rtrn = performance['return']
+        std = performance['std']
+        
+        if strategy == "Best sharpe":
+            sharpe = sharpe_ratio(rtrn, std, risk_free_rate)
+            if sharpe > best_param:
+                best_param = sharpe
+                best_weights = random_weights
+        else:
+            if std < best_param:
+                best_param = std
+                best_weights = random_weights
+    
+    return best_weights
