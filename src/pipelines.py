@@ -33,7 +33,7 @@ def portfolio_report(weights: pd.DataFrame,
 
     last_weights = pure_weights.iloc[-1]
     
-    last_weights = last_weights[last_weights != 0]
+    last_weights = last_weights[last_weights.abs() > 1e-6]
     actual_tickers = list(last_weights.index)
 
     repartition = format_portfolio(last_weights, actual_tickers, portfolio_value=50000, to_txt=True, all_assets=True)
