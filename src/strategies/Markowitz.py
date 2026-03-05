@@ -233,6 +233,12 @@ def rolling_window(prices: pd.DataFrame,
     
     for ind in index_rebalancement:
         price_tmp = prices_copy[:ind].tail(252)
+        
+        # Skip if insufficient data (need at least 252 days for annual calculations)
+        if len(price_tmp) < 252:
+            warnings.warn(f"Skipping {ind}: Insufficient data ({len(price_tmp)} days, need 252)")
+            continue
+        
         return_tmp = price_tmp.pct_change(fill_method=None).dropna()
         
         try:
@@ -358,6 +364,12 @@ def l2_optimization(prices: pd.DataFrame,
     
     for ind in index_rebalancement:
         price_tmp = prices_copy[:ind].tail(252)
+        
+        # Skip if insufficient data (need at least 252 days for annual calculations)
+        if len(price_tmp) < 252:
+            warnings.warn(f"Skipping {ind}: Insufficient data ({len(price_tmp)} days, need 252)")
+            continue
+        
         return_tmp = price_tmp.pct_change(fill_method=None).dropna()
         
         try:
@@ -367,11 +379,24 @@ def l2_optimization(prices: pd.DataFrame,
             
             eigenvalues = np.linalg.eigvals(cov_matrix)
             if np.any(eigenvalues <= 0):
-                warnings.warn(f"Skipping {ind}: Covariance matrix is not positive definite - using previous weights")
-                weights_backtest.loc[ind, asset_columns] = weights_old
-                weights_backtest.loc[ind, 'sharpe_ratio'] = np.nan
-                weights_backtest.loc[ind, 'expected_return'] = np.nan
-                weights_backtest.loc[ind, 'std'] = np.nan
+                warnings.warn(f"Skipping {ind}: Covariance matrix is not positive definite - using MonteCarlo")
+                opt_weights = MonteCarlo_portfolio(1000, 
+                                                    expected_returns, 
+                                                    cov_matrix, 
+                                                    strategy="Lowest std")
+                performance = portfolio_performance(opt_weights, expected_returns, cov_matrix)
+                
+                weights_backtest.loc[ind, asset_columns] = 0.0
+                for i, asset in enumerate(return_tmp.columns):
+                    weights_backtest.loc[ind, asset] = opt_weights[i]
+                
+                weights_backtest.loc[ind, 'sharpe_ratio'] = sharpe_ratio(performance['return'],
+                                                                         performance['std'],
+                                                                         risk_free_rate)
+                weights_backtest.loc[ind, 'expected_return'] = performance['return']
+                weights_backtest.loc[ind, 'std'] = performance['std']
+                
+                weights_old = opt_weights
                 continue
                 
         except Exception as e:
