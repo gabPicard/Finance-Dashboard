@@ -88,6 +88,30 @@ def fetch_risk_free_rate(ticker: str = "^FVX") -> float:
         print("Utilisation du taux par défaut de 4.0%")
         return 0.04
     
+def get_company_info(ticker: str,
+                     info = list[str]
+                    ) -> dict:
+    """
+    Get every listed info for a single company. Makes fetching infos faster
+
+    :param ticker: The asset's ticker
+    :type ticker: str
+    :param info: The list of info to extract. Each str must exist in yfinance
+    :type info: list[str]
+
+    :returns dict: Every info listed and what was fetched
+    :rtype dict: dict
+    """
+    rtrn = {}
+    try:
+        data = fetch_stock_info(ticker).get(ticker, {})
+        for i in info:
+            rtrn[i] = data.get(i)
+    except Exception as e:
+        print(f"Error fetching info for {ticker}: {e}")
+        return None
+    return rtrn
+    
 def get_company_name(ticker: str) -> str:
     """
     Get the name of the company using the ticker and the fetch_stock_info function.
