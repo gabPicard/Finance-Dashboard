@@ -133,3 +133,4 @@ def compound_growth_rate(prices: pd.DataFrame,
     cgr = (prices.iloc[-1] / prices.iloc[0]) ** (duration / n) - 1
     return cgr
 
+
