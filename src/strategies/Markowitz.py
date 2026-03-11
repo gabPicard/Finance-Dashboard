@@ -3,6 +3,7 @@ import pandas as pd
 import warnings
 from qpsolvers import solve_qp
 from ..metrics.portfolio_measurements import compound_growth_rate
+from .CAPM import capm_expected_returns
 
 def optimize_portfolio(cov_matrix: pd.DataFrame, 
                        expected_returns: pd.Series, 
@@ -388,7 +389,8 @@ def l2_optimization(prices: pd.DataFrame,
                     rho: float, 
                     gamma: float, 
                     rebalance_frequency: str='QE', 
-                    max_weight: float=0.15
+                    max_weight: float=0.15,
+                    computation_function: str="cgr"
                 ) -> pd.DataFrame:
     """
     Use the optimization algorithm at every rebalancing date on a long period of time, using an L2-optimization algorithm.
@@ -439,7 +441,12 @@ def l2_optimization(prices: pd.DataFrame,
         try:
             
             cov_matrix = return_tmp.cov() * 252
-            expected_returns = compound_growth_rate(price_tmp, 252)
+
+            match computation_function:
+                case "cgr":
+                    expected_returns = compound_growth_rate(price_tmp, 252)
+                case _:
+                    expected_returns = np.mean(return_tmp)
             
             eigenvalues = np.linalg.eigvals(cov_matrix)
             if np.any(eigenvalues <= 0):
