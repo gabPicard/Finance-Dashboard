@@ -318,6 +318,71 @@ def rolling_window(prices: pd.DataFrame,
 
     return weights_backtest
 
+def l2_algorithm(expected_returns: np.array,
+                 cov_matrix: np.array,
+                 old_weights: np.array,
+                 rho: float,
+                 gamma: float,
+                 max_weight: float
+                ) -> np.array:
+    """
+    The l2 Algorithm to optimize a given portfolio using learning parameters and past results.
+
+    :param expected_returns: The assets's expected returns
+    :type expected_returns: np.array
+    :param cov_matrix: The covariance matrix
+    :type cov_matrix: np.array
+    :param old_weights: The past optimized weights
+    :type old_weights: np.array
+    :param rho: Learning parameter rho
+    :type rho: float
+    :param gamma: Learning parameter gamma
+    :type gamma: float
+    :param max_weight: The maximum weight a single asset can have
+    :type max_weight: float
+
+    :returns opt_weights: The new optimized weights
+    :rtype opt_weights: np.array
+    """
+
+    n = len(expected_returns)
+
+    P = cov_matrix
+    q = np.zeros(n)
+
+    A_list = [np.ones((1, n))]
+    b_list = [1.0]
+
+    A = np.vstack(A_list)
+    b = np.array(b_list)
+
+    G_list = []
+    h_list = []
+    G_list.append(-np.eye(n))
+    h_list.append(np.zeros(n))
+
+    if max_weight is not None:
+        G_list.append(np.eye(n))
+        h_list.append(np.full(n, max_weight))
+
+    if G_list:
+        G = np.vstack(G_list)
+        h = np.concatenate(h_list)
+    else:
+        G = None
+        h = None
+    
+    In = np.eye((n))
+    P += 2 * rho * In
+    q = -gamma * expected_returns + 2 * rho * old_weights.T
+
+    with warnings.catch_warnings():
+        warnings.filterwarnings('ignore', category=UserWarning)
+        opt_weights = solve_qp(P, q, G, h, A, b, solver="ecos")
+    
+    return opt_weights
+
+
 def l2_optimization(prices: pd.DataFrame, 
                     risk_free_rate: float, 
                     rho: float, 
