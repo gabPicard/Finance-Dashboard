@@ -77,18 +77,19 @@ def get_tickers_list(market: str):
     :param market: Must be the name of a known market in the json file.
     :type market: str
 
-    :returns tuple: tickers list | risk free rate
+    :returns tuple: tickers list | risk free rate | market ticker
     """
     json_path = os.path.join(os.path.dirname(__file__), 'tickers_list.json')
     with open(json_path) as f:
         data = json.load(f)
         tickers = data[market]['Tickers list']
         rfr = data[market]['Risk free rate']
+        market_ticker = data[market]['Market ticker']
     
     if isinstance(rfr, list):
         rfr = rfr[0]
     
-    return tickers, rfr
+    return tickers, rfr, market_ticker
 
 def merge_markets(market_list: list[str]) -> list[str]:
     """
