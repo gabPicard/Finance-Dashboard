@@ -430,9 +430,8 @@ def l2_optimization(prices: pd.DataFrame,
     for ind in index_rebalancement:
         price_tmp = prices_copy[:ind].tail(252)
         
-        # Skip if insufficient data (need at least 252 days for annual calculations)
-        if len(price_tmp) < 252:
-            warnings.warn(f"Skipping {ind}: Insufficient data ({len(price_tmp)} days, need 252)")
+        if len(price_tmp) < 63:
+            warnings.warn(f"Skipping {ind}: Insufficient data ({len(price_tmp)} days, need 63)")
             continue
         
         return_tmp = price_tmp.pct_change(fill_method=None).dropna()
@@ -472,41 +471,12 @@ def l2_optimization(prices: pd.DataFrame,
             weights_backtest.loc[ind, 'std'] = np.nan
             continue
 
-        P = cov_matrix
-        q = np.zeros(len(expected_returns))
-
-        A_list = [np.ones((1, len(expected_returns)))]
-        b_list = [1.0]
-
-        A = np.vstack(A_list)
-        b = np.array(b_list)
-
-        G_list = []
-        h_list = []
-
-        G_list.append(-np.eye(len(expected_returns)))
-        h_list.append(np.zeros(len(expected_returns)))
-
-        if max_weight is not None:
-            G_list.append(np.eye(len(expected_returns)))
-            h_list.append(np.full(len(expected_returns), max_weight))
-
-        if G_list:
-            G = np.vstack(G_list)
-            h = np.concatenate(h_list)
-        else:
-            G = None
-            h = None
-
-        In = np.eye((len(expected_returns)))
-
-        P += 2 * rho * In
-        q = -gamma * expected_returns + 2 * rho * weights_old.T
-
-    
-        with warnings.catch_warnings():
-            warnings.filterwarnings('ignore', category=UserWarning)
-            opt_weights = solve_qp(P, q, G, h, A, b, solver="ecos")
+        opt_weights = l2_algorithm(expected_returns,
+                                   cov_matrix,
+                                   weights_old,
+                                   rho,
+                                   gamma,
+                                   max_weight)
         
         if opt_weights is None:
             warnings.warn(f"Skipping {ind}: Optimization failed to converge - using previous weights")
