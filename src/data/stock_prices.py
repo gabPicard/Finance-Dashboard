@@ -12,7 +12,7 @@ def get_stock_prices(market: str | list[str],
                      columns=['Close']
                     ) -> tuple:
     """
-    Get clean and validate historical stock prices and the risk free rate.
+    Get clean and validate historical stock prices, market prices, and the risk free rate.
     
     :param market: The name of a market, or a list of markets. If it is a list, the program will get each tickers from each markets
     :type market: str | list[str]
@@ -25,8 +25,10 @@ def get_stock_prices(market: str | list[str],
     :param interval: [Optional] The interval to fecth data. By default, 1 day
     :type interval: str
 
-    :returns clean_prices: DataFrame of cleaned prices
+    :returns clean_prices: DataFrame of cleaned stock prices
     :rtype clean_prices: pd.DataFrame
+    :returns clean_market_prices: DataFrame of cleaned market prices
+    :rtype clean_market_prices: pd.DataFrame
     :returns risk_free_rate: The risk free return rate
     :rtype risk_free_rate: float
     :returns actual_tickers: List of tickers that remain after cleaning (may differ from initial list)
@@ -36,14 +38,23 @@ def get_stock_prices(market: str | list[str],
     if isinstance(market, list):
         tickers_list = merge_markets(market)
         risk_free_rate_ticker = "^IRX"
+        market_ticker = "^GSPC"  # Default to S&P 500 for multiple markets
     else:
-        tickers_list, risk_free_rate_ticker = get_tickers_list(market)
+        tickers_list, risk_free_rate_ticker, market_ticker = get_tickers_list(market)
 
     raw_prices = fetch_stock_data(tickers_list,
                                   start_date=start_date,
                                   end_date=end_date,
                                   period=period,
                                   interval=interval)
+    
+    # Fetch market prices
+    raw_market_prices = fetch_stock_data([market_ticker],
+                                        start_date=start_date,
+                                        end_date=end_date,
+                                        period=period,
+                                        interval=interval)
+    
     risk_free_rate = fetch_risk_free_rate(risk_free_rate_ticker)
 
     prices_tmp = raw_prices[columns]
@@ -67,7 +78,25 @@ def get_stock_prices(market: str | list[str],
     if all_excluded:
         delete_assets(all_excluded, market)
     
-    return clean_prices, risk_free_rate
+    # Process market prices
+    market_prices_tmp = raw_market_prices[columns]
+    
+    if isinstance(market_prices_tmp.columns, pd.MultiIndex):
+        market_prices_tmp.columns = [col[1] if col[1] else col[0] for col in market_prices_tmp.columns]
+    
+    market_prices_tmp, _ = fix_price_anomalies(market_prices_tmp, max_daily_change=0.5, max_anomalies=3)
+    
+    clean_market_prices, _ = validate_and_clean_data(market_prices_tmp)
+    
+    market_prices_reset = clean_market_prices.reset_index()
+    if market_prices_reset.columns[0] == 'index' or market_prices_reset.columns[0] == 'Date':
+        market_prices_reset = market_prices_reset.rename(columns={market_prices_reset.columns[0]: 'date'})
+    else:
+        market_prices_reset.insert(0, 'date', clean_market_prices.index)
+    
+    clean_market_prices = market_prices_reset
+    
+    return clean_prices, clean_market_prices, risk_free_rate
 
 
 def get_tickers_list(market: str):
