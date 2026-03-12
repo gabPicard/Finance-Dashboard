@@ -123,7 +123,6 @@
       "EZJ.L",
       "DPLM.L",
       "SPX.L",
-      "MTLN.L",
       "STJ.L",
       "RTO.L",
       "RR.L",
@@ -187,9 +186,7 @@
       "UMG.AS",
       "AD",
       "ASM",
-      "CSG.AS",
       "ADYEN.AS",
-      "INPHI.AS",
       "PHIA.AS",
       "ABN.AS",
       "HEIO.AS",
@@ -201,7 +198,6 @@
       "WKL.AS",
       "HAL",
       "BESI.AS",
-      "CVC.AS",
       "ASRNL.AS",
       "AKZA.AS"
     ]
@@ -249,11 +245,11 @@
     ]
   },
   "EURONEXT": {
-    "Risk free rate":[
+    "Risk free rate": [
       "^IRX"
     ],
     "Market ticker": "^N100",
-    "Tickers list":[
+    "Tickers list": [
       "SHELL.AS",
       "GALP.LS",
       "TTE.PA",
@@ -329,7 +325,7 @@
       "^IRX"
     ],
     "Market ticker": "^HSI",
-    "Tickers list":[
+    "Tickers list": [
       "0012.HK",
       "1044.HK",
       "1038.HK",
