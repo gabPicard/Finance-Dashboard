@@ -38,14 +38,19 @@ def capm_expected_returns(prices: pd.DataFrame,
    :returns capm_returns: dict{asset: capm_expected_return}
    :rtype capm_returns: dict
    """
-   market_returns = market_prices.pct_change()
-   asset_returns = prices.pct_change()
+   market_returns = market_prices.pct_change(fill_method=None).dropna()
+   asset_returns = prices.pct_change(fill_method=None).dropna()
+   
+   # Extract the first column if market_returns is a DataFrame
+   if isinstance(market_returns, pd.DataFrame):
+      market_returns = market_returns.iloc[:, 0]
 
-   market_expected_return = market_returns.mean() * 252
+   # Ensure market_expected_return is a scalar
+   market_expected_return = float(market_returns.mean() * 252)
 
    capm_returns = {}
    for asset in asset_returns.columns:
       beta_i = calculate_beta(asset_returns[asset], market_returns)
-      capm_returns[asset] = risk_free_rate + beta_i * (market_expected_return - risk_free_rate)
+      capm_returns[asset] = float(risk_free_rate + beta_i * (market_expected_return - risk_free_rate))
    
    return capm_returns

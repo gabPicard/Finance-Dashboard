@@ -133,7 +133,7 @@ def merge_markets(market_list: list[str]) -> list[str]:
     merged_list = []
     for market in market_list:
         try:
-            tickers_list, rfr = get_tickers_list(market)
+            tickers_list, rfr, market_ticker = get_tickers_list(market)
             for ticker in tickers_list:
                 if ticker not in merged_list:
                     merged_list.append(ticker)
