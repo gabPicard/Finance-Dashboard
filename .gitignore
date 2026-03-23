@@ -211,3 +211,9 @@ temp.py
 
 # Weights files
 data/*.txt
+
+# Finance Dashboard specific
+data/finance.db
+logs/
+_core*.so
+_core*.pyd
